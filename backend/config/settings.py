@@ -29,6 +29,8 @@ if not SECRET_KEY:
         raise RuntimeError("DJANGO_SECRET_KEY doit être défini hors du mode DEBUG.")
 
 ALLOWED_HOSTS = env_liste("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+# Sur Vercel, les adresses du déploiement sont connues par des variables du système.
+ALLOWED_HOSTS += [h for h in (os.environ.get("VERCEL_URL"), os.environ.get("VERCEL_PROJECT_PRODUCTION_URL")) if h]
 CSRF_TRUSTED_ORIGINS = env_liste("DJANGO_CSRF_TRUSTED_ORIGINS", "")
 
 INSTALLED_APPS = [
