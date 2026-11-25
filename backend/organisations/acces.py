@@ -36,12 +36,12 @@ def destination_apres_connexion(utilisateur):
 
     Renvoie un dictionnaire que l'application React traduit en écran.
     """
+    if utilisateur.doit_changer_mot_de_passe:
+        return {"type": "changer_mot_de_passe"}
     if utilisateur.est_admin:
         return {"type": "admin"}
     if utilisateur.statut == utilisateur.Statut.EN_ATTENTE:
         return {"type": "attente"}
-    if utilisateur.doit_changer_mot_de_passe:
-        return {"type": "changer_mot_de_passe"}
     if groupes_enseignes(utilisateur).exists():
         return {"type": "prof"}
     groupes = list(groupes_visibles(utilisateur))

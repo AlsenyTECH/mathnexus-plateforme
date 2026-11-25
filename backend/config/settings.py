@@ -75,18 +75,28 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # Base de données : PostgreSQL en production (DATABASE_URL), SQLite par défaut en développement.
+# Sur un hébergement sans serveur (Vercel), chaque requête peut arriver sur une nouvelle
+# instance : pas de connexion gardée ouverte, et pas de curseur côté serveur derrière un
+# pooler en mode transaction (Neon, PgBouncer).
+SANS_SERVEUR = env_bool("SANS_SERVEUR", bool(os.environ.get("VERCEL")))
 DATABASES = {
     "default": dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'dev.sqlite3'}",
-        conn_max_age=60,
+        conn_max_age=0 if SANS_SERVEUR else 60,
+        conn_health_checks=not SANS_SERVEUR,
     )
 }
+if env_bool("DB_POOLER", SANS_SERVEUR):
+    DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True
 
-# Cache : Redis en production (REDIS_URL), mémoire locale sinon.
-# Il sert aussi à la limitation des tentatives de connexion.
+# Cache : Redis s'il existe (REDIS_URL) ; sinon, en production, une table de la base, partagée
+# par toutes les instances (indispensable pour que la limitation des tentatives de connexion
+# tienne sur un hébergement sans serveur) ; mémoire locale en développement.
 REDIS_URL = os.environ.get("REDIS_URL")
 if REDIS_URL:
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache", "LOCATION": REDIS_URL}}
+elif not DEBUG:
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "cache_django"}}
 else:
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 

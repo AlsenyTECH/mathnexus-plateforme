@@ -218,3 +218,39 @@ def test_referentiel_pour_les_formulaires(client_api, admin, organisation, annee
     assert r.data["annees"][0]["libelle"] == "2026-2027"
     connecter(client_api, creer_eleve(terminale))
     assert client_api.get("/api/admin/referentiel/").status_code == 403
+
+
+def test_admin_au_mot_de_passe_provisoire_le_change_d_abord(client_api, admin):
+    admin.doit_changer_mot_de_passe = True
+    admin.save()
+    connecter(client_api, admin)
+    assert client_api.get("/api/moi/").data["destination"] == {"type": "changer_mot_de_passe"}
+
+
+def test_initialiser_plateforme_est_idempotent(db, monkeypatch):
+    from django.core.management import call_command
+
+    from comptes.models import Utilisateur as U
+    from contenus.models import Parcours, VersionParcours
+    from organisations.models import AnneeScolaire, Organisation
+
+    monkeypatch.setenv("ADMIN_TELEPHONE", "77 100 00 00")
+    monkeypatch.setenv("ADMIN_MOT_DE_PASSE_PROVISOIRE", "Provisoire-tres-long-2026")
+    call_command("initialiser_plateforme")
+    call_command("initialiser_plateforme")
+    admin = U.objects.get(is_superuser=True)
+    assert admin.telephone == "+221771000000" and admin.doit_changer_mot_de_passe
+    assert Organisation.objects.count() == 1 and AnneeScolaire.objects.filter(en_cours=True).count() == 1
+    assert set(Parcours.objects.values_list("slug", flat=True)) == {"nombres-complexes", "etude-de-fonction"}
+    assert VersionParcours.objects.filter(statut="publiee").count() == 2
+    assert VersionParcours.objects.count() == 2  # rien n'est réimporté
+
+
+def test_annee_scolaire_commence_en_octobre():
+    import datetime
+
+    from comptes.management.commands.initialiser_plateforme import annee_en_cours
+
+    assert annee_en_cours(datetime.date(2026, 11, 25))[0] == "2026-2027"
+    assert annee_en_cours(datetime.date(2027, 3, 1))[0] == "2026-2027"
+    assert annee_en_cours(datetime.date(2027, 10, 2))[0] == "2027-2028"

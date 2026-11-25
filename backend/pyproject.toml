@@ -1,0 +1,3 @@
+# Configuration pour le déploiement sur Vercel (les dépendances sont dans requirements.txt).
+[tool.vercel.scripts]
+build = "python vercel_build.py"
