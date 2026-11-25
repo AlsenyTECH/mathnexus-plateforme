@@ -6,7 +6,7 @@ ensuite SANGEL (organisations, groupes, rôles, offres, paiement, médias, progr
 
 Plan complet : document « Plateforme Mathnexus — Plan complet ».
 
-## État : phase 1, premier lot (noyau comptes et classes)
+## État : phase 1, lots 1 et 2 (comptes et classes, contenus et progression)
 
 | Fait | Détail |
 | --- | --- |
@@ -17,10 +17,13 @@ Plan complet : document « Plateforme Mathnexus — Plan complet ».
 | Classes | Organisations, années scolaires, groupes avec code d'inscription lisible et régénérable, rôles élève / prof par groupe |
 | Redirection | Admin, compte en attente, mot de passe à changer, prof, une classe, plusieurs classes (dernier choix retenu), aucune classe |
 | Sécurité | Sessions par cookie HttpOnly + CSRF, limitation des tentatives (5 connexions par minute), deux appareils au plus par compte, périmètre vérifié côté serveur (404 hors périmètre), journal d'audit, réglages durcis hors DEBUG |
-| Tests | 46 tests, passés sur SQLite et PostgreSQL 16 ; chaque règle d'accès cassée volontairement fait échouer au moins un test |
+| Contenus | Paquets de parcours (manifeste + fragments HTML) validés à l'import : aucun script, gestionnaire d'événement ou URL `javascript:` ne passe ([format](backend/contenus/FORMAT_PAQUET.md)) ; import par l'admin ou par clé de déploiement ; versions en brouillon, aperçu, publication |
+| Partage | Un parcours rattaché à plusieurs classes ; ouverture de toutes les étapes, ou progressive par le prof ; niveaux d'accès public, inscrit, premium ; vitrine publique sans compte |
+| Progression | Étapes ouvertes et validées par élève, accrochées aux clés stables : rien n'est perdu quand une nouvelle version est publiée ; tableau de progression du prof |
+| Conversion | `outils/convertir_parcours.py` transforme un parcours « cahier » actuel en paquet ; testé sur Nombres complexes et Étude de fonction |
+| Tests | 83 tests + 1 pour l'outil, passés sur SQLite et PostgreSQL 16 ; chaque règle d'accès cassée volontairement fait échouer au moins un test |
 
-À venir dans la phase 1 : contenus (import des paquets du moteur, versions, rattachement aux classes),
-lecteur d'étape, progression, tableau de bord prof, puis l'application React.
+À venir dans la phase 1 : l'application React (connexion, tableau de bord de classe, lecteur d'étape, espace prof).
 
 ## Démarrer en local
 
@@ -62,6 +65,18 @@ l'en-tête `X-CSRFToken` sur chaque requête qui modifie quelque chose.
 | `POST admin/groupes/<id>/regenerer-code/` | admin | Nouveau code d'inscription |
 | `POST admin/groupes/<id>/importer/` | admin | Importer une liste d'élèves |
 | `POST admin/groupes/<id>/profs/` | admin | Ajouter un prof au groupe |
+| `GET groupes/<id>/parcours/` | connecté | Les parcours de la classe et l'avancement |
+| `GET groupes/<id>/parcours/<slug>/` | connecté | Sommaire : parties, étapes, ouvertes, accessibles, validées |
+| `GET groupes/<id>/parcours/<slug>/etapes/<cle>/` | connecté | Lire une étape (403 avec `raison` : `premium` ou `pas_encore_ouverte`) |
+| `POST groupes/<id>/parcours/<slug>/etapes/<cle>/valider/` | élève | Valider l'étape |
+| `POST groupes/<id>/parcours/<slug>/ouverture/` | prof du groupe, admin | Ouvrir (ou refermer avec `"ouvrir": false`) des étapes |
+| `GET groupes/<id>/parcours/<slug>/progression/` | prof du groupe, admin | Tableau élèves × étapes validées |
+| `GET public/parcours/<slug>/etapes/<cle>/` | public | Étapes de vitrine |
+| `POST admin/contenus/import/` | admin, clé de déploiement | Importer un paquet (champ `paquet`) |
+| `GET admin/contenus/parcours/` | admin | Catalogue et versions |
+| `GET admin/contenus/versions/<id>/`, `.../etapes/<cle>/` | admin | Aperçu d'une version, brouillon compris |
+| `POST admin/contenus/versions/<id>/publier/` | admin | Publier (la précédente est archivée) |
+| `POST admin/groupes/<id>/parcours/`, `DELETE .../parcours/<slug>/` | admin | Rattacher, détacher un parcours |
 
 Valeurs de `destination` : `admin`, `attente`, `changer_mot_de_passe`, `prof`,
 `groupe` (avec `groupe`), `choix_groupe` (avec `groupes`), `aucun_groupe`.
@@ -73,7 +88,20 @@ backend/
   config/          réglages (variables d'environnement), URL
   comptes/         Utilisateur, appareils, journal d'audit, inscription, connexion, validation
   organisations/   Organisation, AnneeScolaire, Groupe, Inscription ; acces.py = le périmètre de chaque compte
+  contenus/        Parcours, versions, parties, étapes, rattachements ; paquet.py = validation des paquets
+  progression/     Progression par élève et par étape
+outils/
+  convertir_parcours.py   parcours « cahier » actuel → paquet
+```
+
+Importer un parcours existant :
+
+```bash
+python3 outils/convertir_parcours.py chemin/nombres-complexes.html --slug nombres-complexes \
+    --titre "Nombres complexes" --matiere Mathématiques --cycle lycee --public carte -o nc.zip
+cd backend && python manage.py importer_paquet ../nc.zip --publier
 ```
 
 `organisations/acces.py` est le seul endroit qui décide de ce qu'un compte peut voir :
-toute nouvelle vue doit partir de `groupes_visibles` ou `groupes_enseignes`.
+toute nouvelle vue doit partir de `groupes_visibles` ou `groupes_enseignes`. Pour les contenus,
+`contenus/acces.py` ajoute les règles d'ouverture et de niveau d'accès.

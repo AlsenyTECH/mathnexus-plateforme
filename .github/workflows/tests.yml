@@ -28,6 +28,12 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - name: Tests (SQLite)
         run: python -m pytest
+      - name: Tests (PostgreSQL 16)
+        env:
+          TEST_DATABASE_URL: postgres://mathnexus:test@localhost:5432/mathnexus
+        run: python -m pytest
+      - name: Tests de l'outil de conversion
+        run: python -m pytest ../outils/tests
       - name: Contrôles de déploiement Django
         env:
           DJANGO_DEBUG: "0"

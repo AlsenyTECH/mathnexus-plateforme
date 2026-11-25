@@ -2,7 +2,9 @@ from django.contrib import admin
 from django.urls import include, path
 
 from comptes import vues as c
+from contenus import vues as ct
 from organisations import vues as o
+from progression import vues as pr
 
 api = [
     # Session
@@ -18,6 +20,15 @@ api = [
     path("groupes/", o.MesGroupes.as_view()),
     path("groupes/<uuid:pk>/", o.DetailGroupe.as_view()),
     path("groupes/<uuid:pk>/membres/", o.MembresGroupe.as_view()),
+    # Parcours d'un groupe : sommaire, lecture, validation, ouverture, progression
+    path("groupes/<uuid:pk>/parcours/", ct.ParcoursDuGroupe.as_view()),
+    path("groupes/<uuid:pk>/parcours/<slug:slug>/", ct.SommaireParcours.as_view()),
+    path("groupes/<uuid:pk>/parcours/<slug:slug>/etapes/<slug:cle>/", ct.LireEtape.as_view()),
+    path("groupes/<uuid:pk>/parcours/<slug:slug>/etapes/<slug:cle>/valider/", pr.ValiderEtape.as_view()),
+    path("groupes/<uuid:pk>/parcours/<slug:slug>/ouverture/", ct.OuvrirEtapes.as_view()),
+    path("groupes/<uuid:pk>/parcours/<slug:slug>/progression/", pr.ProgressionDuGroupe.as_view()),
+    # Vitrine publique
+    path("public/parcours/<slug:slug>/etapes/<slug:cle>/", ct.EtapePublique.as_view()),
     # Administration
     path("admin/comptes-en-attente/", c.ComptesEnAttente.as_view()),
     path("admin/comptes/<uuid:pk>/valider/", c.ValiderCompte.as_view()),
@@ -29,6 +40,13 @@ api = [
     path("admin/groupes/<uuid:pk>/regenerer-code/", o.RegenererCode.as_view()),
     path("admin/groupes/<uuid:pk>/importer/", o.ImporterEleves.as_view()),
     path("admin/groupes/<uuid:pk>/profs/", o.AjouterProf.as_view()),
+    path("admin/groupes/<uuid:pk>/parcours/", ct.RattacherParcours.as_view()),
+    path("admin/groupes/<uuid:pk>/parcours/<slug:slug>/", ct.DetacherParcours.as_view()),
+    path("admin/contenus/import/", ct.ImporterPaquet.as_view()),
+    path("admin/contenus/parcours/", ct.ParcoursAdmin.as_view()),
+    path("admin/contenus/versions/<uuid:pk>/", ct.VersionAdmin.as_view()),
+    path("admin/contenus/versions/<uuid:pk>/etapes/<slug:cle>/", ct.EtapeVersionAdmin.as_view()),
+    path("admin/contenus/versions/<uuid:pk>/publier/", ct.PublierVersion.as_view()),
 ]
 
 urlpatterns = [

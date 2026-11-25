@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "comptes",
     "organisations",
+    "contenus",
+    "progression",
 ]
 
 MIDDLEWARE = [
@@ -147,3 +149,11 @@ if not DEBUG:
 
 # Nombre d'appareils connectés en même temps par compte (partage de comptes).
 MAX_SESSIONS_PAR_COMPTE = int(os.environ.get("MAX_SESSIONS_PAR_COMPTE", "2"))
+
+# Empreinte SHA-256 de la clé du moteur de parcours (jamais la clé elle-même).
+# Générer : python3 -c "import secrets,hashlib; k=secrets.token_urlsafe(40); print(k); print(hashlib.sha256(k.encode()).hexdigest())"
+CLE_DEPLOIEMENT_SHA256 = os.environ.get("CLE_DEPLOIEMENT_SHA256", "")
+
+# Paquets de parcours : 25 Mo au plus (vérifié aussi par contenus.paquet).
+DATA_UPLOAD_MAX_MEMORY_SIZE = 26 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 26 * 1024 * 1024
