@@ -1,0 +1,91 @@
+/* Les écrans de l'application autour des parcours (connexion, tableaux de bord, admin).
+   Mêmes couleurs et polices que le cahier (style/cahier.css). */
+
+body { min-height: 100vh; }
+
+.cadre { min-height: 100vh; display: flex; flex-direction: column; }
+.cadre-haut {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 10px max(18px, env(safe-area-inset-left, 0px)); background: var(--surface);
+  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20;
+}
+.cadre-marque { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.cadre-marque span { font-family: var(--f-hand); font-weight: 700; font-size: 1.7rem; color: var(--rouge); line-height: 1; }
+.cadre-nav { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.cadre-nav a { text-decoration: none; font-weight: 600; }
+.cadre-nom { color: var(--muted); }
+.cadre-contenu { width: 100%; max-width: 980px; margin: 0 auto; padding: 24px max(18px, env(safe-area-inset-left, 0px)) 60px; }
+.cadre-titre { font-family: var(--f-hand); color: var(--rouge); font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.05; margin: 8px 0 18px; }
+
+h2 { font-size: 1.25rem; margin: 18px 0 10px; }
+h3 { font-size: 1.08rem; margin: 10px 0 6px; }
+.lead { font-size: 1.08rem; color: var(--muted); margin: 0 0 8px; }
+.discret { color: var(--muted); font-size: .95rem; margin: 2px 0; }
+.fil { margin: 0 0 10px; }
+.fil a { text-decoration: none; font-weight: 600; }
+
+.chargement { color: var(--muted); font-style: italic; padding: 16px 0; }
+.erreur { color: var(--rouge); background: var(--rouge-bg); border: 1px solid var(--rouge); border-radius: 4px; padding: 10px 14px; margin: 10px 0; }
+.encart { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px; margin: 10px 0; }
+.encart > :first-child { margin-top: 0; }
+
+/* Formulaires */
+.carte-formulaire {
+  max-width: 440px; margin: 24px auto; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 6px; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 12px;
+}
+.carte-formulaire.large { max-width: 620px; }
+.carte-formulaire h1 { font-family: var(--f-hand); color: var(--rouge); font-size: 2.3rem; margin: 0; line-height: 1.05; }
+.champ { display: flex; flex-direction: column; gap: 4px; }
+.champ label, label.champ { font-weight: 600; }
+input, select, textarea {
+  font: inherit; color: var(--ink); background: var(--paper); border: 1.5px solid var(--line);
+  border-radius: 4px; padding: 9px 11px; width: 100%;
+}
+input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--prof); padding: 0; }
+input:focus, select:focus, textarea:focus { border-color: var(--pen); outline: none; box-shadow: 0 0 0 3px var(--pen-bg); }
+.champ-aide { color: var(--muted); font-size: .9rem; margin: 0; }
+.champ-erreur { color: var(--rouge); font-size: .92rem; margin: 0; }
+.case-ligne { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; }
+.case-ligne input { margin-top: 4px; flex: none; }
+.formulaire-pied { color: var(--muted); margin: 4px 0 0; text-align: center; }
+.grille-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.grille-2.haut { align-items: start; gap: 28px; }
+.ligne-formulaire { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0 16px; }
+.ligne-formulaire > input, .ligne-formulaire > select { flex: 1 1 180px; width: auto; }
+.btn.petit { padding: 5px 10px; font-size: .9rem; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+
+/* Cartes et listes */
+.liste-cartes { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 12px; }
+.liste-simple { padding-left: 1.2em; margin: 6px 0; }
+.liste-simple li { margin: 4px 0; }
+.carte-parcours, .carte-choix {
+  display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; font: inherit; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px;
+  color: var(--ink); text-decoration: none;
+}
+.carte-parcours:hover, .carte-choix:hover { border-color: var(--pen); }
+.carte-parcours strong { font-family: var(--f-hand); font-size: 1.9rem; color: var(--rouge); line-height: 1.05; }
+.carte-choix strong { font-size: 1.15rem; }
+.carte-matiere { font-size: .78rem; letter-spacing: .07em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+.carte-desc { color: var(--muted); }
+.carte-parcours .prog, .carte-compte, .carte-classe { margin: 6px 0 0; }
+.carte-compte, .carte-classe { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+.carte-compte p, .carte-classe p { margin: 2px 0; }
+.carte-classe-tete { display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+.code-classe { font-size: 1.05rem; font-weight: 700; color: var(--pen); background: var(--pen-bg); padding: 2px 8px; border-radius: 3px; letter-spacing: .04em; }
+.gestion-classe { border-top: 1px dashed var(--line); margin-top: 12px; padding-top: 8px; display: grid; gap: 8px; }
+.ligne-ouverture { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px dashed var(--line); padding: 6px 0; list-style: none; }
+
+/* Sommaire et verrous */
+.sommaire { max-width: 640px; }
+.sommaire .btn { margin: 6px 0 12px; }
+.nav-verrou { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; padding: 7px 8px; color: var(--muted); font-size: .95rem; line-height: 1.3; }
+.etape-raison { font-size: .85rem; }
+
+/* Tableau de progression du prof */
+.tableau-progression td.c { color: var(--prof); font-weight: 700; }
+.tableau-progression .prog { margin: 0; min-width: 120px; }
+.tableau-progression .prog-txt { display: none; }
+.graph-absent { color: var(--muted); font-style: italic; padding: 12px; }

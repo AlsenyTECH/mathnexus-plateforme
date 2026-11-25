@@ -9,6 +9,7 @@ from progression import vues as pr
 api = [
     # Session
     path("auth/csrf/", c.JetonCsrf.as_view()),
+    path("auth/session/", c.EtatSession.as_view()),
     path("auth/inscription/", c.Inscription_.as_view()),
     path("auth/connexion/", c.Connexion.as_view()),
     path("auth/deconnexion/", c.Deconnexion.as_view()),
@@ -35,6 +36,7 @@ api = [
     path("admin/comptes/<uuid:pk>/refuser/", c.RefuserCompte.as_view()),
     path("admin/comptes/<uuid:pk>/suspendre/", c.SuspendreCompte.as_view()),
     path("admin/comptes/<uuid:pk>/reactiver/", c.ReactiverCompte.as_view()),
+    path("admin/referentiel/", o.Referentiel.as_view()),
     path("admin/groupes/", o.GroupesAdmin.as_view()),
     path("admin/groupes/<uuid:pk>/", o.GroupeAdmin.as_view()),
     path("admin/groupes/<uuid:pk>/regenerer-code/", o.RegenererCode.as_view()),

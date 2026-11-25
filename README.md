@@ -6,7 +6,7 @@ ensuite SANGEL (organisations, groupes, rôles, offres, paiement, médias, progr
 
 Plan complet : document « Plateforme Mathnexus — Plan complet ».
 
-## État : phase 1, lots 1 et 2 (comptes et classes, contenus et progression)
+## État : phase 1 — comptes et classes, contenus et progression, application React
 
 | Fait | Détail |
 | --- | --- |
@@ -23,7 +23,11 @@ Plan complet : document « Plateforme Mathnexus — Plan complet ».
 | Conversion | `outils/convertir_parcours.py` transforme un parcours « cahier » actuel en paquet ; testé sur Nombres complexes et Étude de fonction |
 | Tests | 83 tests + 1 pour l'outil, passés sur SQLite et PostgreSQL 16 ; chaque règle d'accès cassée volontairement fait échouer au moins un test |
 
-À venir dans la phase 1 : l'application React (connexion, tableau de bord de classe, lecteur d'étape, espace prof).
+| Application | React + TypeScript (Vite) : connexion, inscription avec code de classe, attente, redirection ; tableau de bord de classe, sommaire, lecteur d'étape au style cahier (formules KaTeX, graphiques interactifs et évaluations chronométrées repris des parcours d'origine) ; espace prof (progression, ouverture des étapes) ; admin (comptes en attente, classes et codes, import de listes, contenus et publication) |
+| Front | Pages prof, admin et lecteur chargées à la demande (88 Ko compressés pour entrer) ; contenu nettoyé par DOMPurify en plus du contrôle serveur ; 14 tests Vitest |
+| Bout en bout | `frontend/e2e/scenario.mjs` déroule dans Chrome le parcours complet élève → admin → prof sur les vrais parcours, y compris sur la version de production avec la CSP de Caddy |
+
+À venir : phase 2 (évaluations enregistrées sur le serveur, vidéos protégées, application installable hors ligne).
 
 ## Démarrer en local
 
@@ -40,7 +44,18 @@ python -m pytest                      # les tests
 
 Administration Django : http://localhost:8000/gestion/ (créer l'organisation, l'année et les classes).
 
-Avec Docker (PostgreSQL + Redis + API) : `cp .env.example .env`, remplir les valeurs, puis `docker compose up --build`.
+L'application (dans un second terminal) :
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173 ; Vite relaie /api vers Django (port 8000)
+npm test           # tests Vitest
+```
+
+Avec Docker (PostgreSQL, Redis, API et Caddy qui sert l'application) : `cp .env.example .env`, remplir les
+valeurs, puis `docker compose up --build`, et ouvrir http://localhost:8080. En production, `DOMAINE` reçoit
+le nom de domaine et Caddy obtient le certificat HTTPS tout seul.
 
 ## API
 
@@ -50,6 +65,7 @@ l'en-tête `X-CSRFToken` sur chaque requête qui modifie quelque chose.
 | Route | Qui | Rôle |
 | --- | --- | --- |
 | `POST auth/inscription/` | public | Créer un compte (avec ou sans `code_classe`) |
+| `GET auth/session/` | public | Qui est connecté (200 même sans session) |
 | `POST auth/connexion/` | public | Ouvrir une session ; renvoie `destination` |
 | `POST auth/deconnexion/` | connecté | Fermer la session |
 | `GET moi/` | connecté | Profil et `destination` |
@@ -90,6 +106,13 @@ backend/
   organisations/   Organisation, AnneeScolaire, Groupe, Inscription ; acces.py = le périmètre de chaque compte
   contenus/        Parcours, versions, parties, étapes, rattachements ; paquet.py = validation des paquets
   progression/     Progression par élève et par étape
+frontend/
+  src/api/         client (cookie de session + jeton CSRF) et types des réponses
+  src/pages/       Entree (connexion, inscription…), Eleve, Prof, Admin
+  src/lecteur/     rendu d'une étape : KaTeX, moteurs de graphiques, évaluations, DOMPurify
+  src/style/       cahier.css, repris des parcours d'origine
+  e2e/scenario.mjs scénario de bout en bout dans Chrome
+  Caddyfile        service de l'application et relais vers l'API, en-têtes de sécurité
 outils/
   convertir_parcours.py   parcours « cahier » actuel → paquet
 ```

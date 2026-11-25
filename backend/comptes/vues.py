@@ -117,6 +117,19 @@ class Deconnexion(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class EtatSession(APIView):
+    """Au chargement de l'application : qui est connecté ? Répond 200 même sans session,
+    pour que le navigateur n'affiche pas d'erreur à chaque visite."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        u = request.user
+        if not (u.is_authenticated and u.peut_utiliser):
+            return Response({"utilisateur": None, "destination": None})
+        return _reponse_session(u)
+
+
 class Moi(APIView):
     def get(self, request):
         return _reponse_session(request.user)

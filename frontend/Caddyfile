@@ -1,0 +1,40 @@
+# {$DOMAINE} : « :80 » en local, le nom de domaine en production (HTTPS automatique).
+{$DOMAINE::80} {
+	encode zstd gzip
+
+	# En-têtes de sécurité de l'application
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; media-src 'self' https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		-Server
+	}
+
+	# L'API et l'administration Django
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	handle /gestion/* {
+		reverse_proxy api:8000
+	}
+	handle_path /static/* {
+		root * /statiques
+		file_server
+	}
+
+	# Les fichiers de l'application : noms à empreinte, mis en cache longtemps
+	handle /assets/* {
+		root * /srv
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Toute autre adresse est une page de l'application React
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

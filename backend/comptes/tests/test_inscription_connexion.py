@@ -181,3 +181,15 @@ def test_mot_de_passe_provisoire_force_le_changement(client_api, terminale, cree
     assert r.status_code == 200, r.data
     assert r.data["destination"]["type"] == "groupe"
     assert JournalAudit.objects.filter(action="mot_de_passe_change").exists()
+
+
+def test_etat_de_session_sans_erreur(client_api, terminale, creer_eleve):
+    assert client_api.get("/api/auth/session/").data == {"utilisateur": None, "destination": None}
+    eleve = creer_eleve(terminale)
+    connecter(client_api, eleve)
+    r = client_api.get("/api/auth/session/")
+    assert r.data["utilisateur"]["id"] == str(eleve.id)
+    assert r.data["destination"] == {"type": "groupe", "groupe": str(terminale.id)}
+    eleve.statut = "suspendu"
+    eleve.save()
+    assert client_api.get("/api/auth/session/").data["utilisateur"] is None

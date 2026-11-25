@@ -297,6 +297,9 @@ def test_ouverture_progressive(client_api, rattache, terminale, creer_eleve):
     assert client_eleve.post(f"{url}/ouverture/", {"etapes": ["calcul"]}, format="json").status_code == 404
     r = client_api.post(f"{url}/ouverture/", {"etapes": ["carte", "calcul"]}, format="json")
     assert r.data["ouvertes"] == ["calcul", "carte"]
+    vu_du_prof = {e["cle"]: (e["accessible"], e["ouverte_eleves"])
+                  for p in client_api.get(f"{url}/").data["parties"] for e in p["etapes"]}
+    assert vu_du_prof["calcul"] == (True, True) and vu_du_prof["racines"] == (True, False)
     assert client_eleve.get(f"{url}/etapes/calcul/").status_code == 200
     assert client_api.post(f"{url}/ouverture/", {"etapes": ["inconnue"]}, format="json").status_code == 400
     client_api.post(f"{url}/ouverture/", {"etapes": ["calcul"], "ouvrir": False}, format="json")

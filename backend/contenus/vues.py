@@ -168,6 +168,8 @@ def _sommaire(request, groupe, rattachement, version):
             etapes.append({
                 "cle": e.cle, "titre": e.titre, "duree_min": e.duree_min, "acces": e.acces,
                 "ouverte": ouverte, "accessible": accessible, "raison": raison, "validee": e.cle in validees,
+                # Ce que voient les élèves (le prof, lui, voit tout ouvert).
+                "ouverte_eleves": rattachement.ouverture == Rattachement.Ouverture.TOUT or e.cle in cles_ouvertes,
             })
         parties.append({"cle": partie.cle, "titre": partie.titre, "etapes": etapes})
     p = rattachement.parcours

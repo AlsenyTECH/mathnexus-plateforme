@@ -130,3 +130,17 @@ class AjouterProf(APIView):
         inscription.valider(par=request.user)
         JournalAudit.noter(request, "prof_ajoute", groupe.id, prof=str(prof.id))
         return Response(MembreSerializer(inscription).data, status=status.HTTP_201_CREATED)
+
+
+class Referentiel(APIView):
+    """Organisations et années scolaires, pour les formulaires de l'admin."""
+
+    permission_classes = [EstAdmin]
+
+    def get(self, request):
+        from .models import AnneeScolaire, Organisation
+
+        return Response({
+            "organisations": [{"id": str(o.id), "nom": o.nom} for o in Organisation.objects.all()],
+            "annees": [{"id": a.id, "libelle": a.libelle, "en_cours": a.en_cours} for a in AnneeScolaire.objects.all()],
+        })

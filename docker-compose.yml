@@ -1,6 +1,6 @@
 # Environnement complet en local : PostgreSQL, Redis et l'API.
 #   cp .env.example .env   (puis remplir les valeurs)
-#   docker compose up --build
+#   docker compose up --build      → http://localhost:8080
 services:
   db:
     image: postgres:16
@@ -25,13 +25,25 @@ services:
     environment:
       DATABASE_URL: postgres://mathnexus:${POSTGRES_PASSWORD}@db:5432/mathnexus
       REDIS_URL: redis://redis:6379/0
-    ports:
-      - "8000:8000"
+    volumes:
+      - statiques:/app/staticfiles
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
 
+  web:
+    build: ./frontend
+    environment:
+      DOMAINE: ${DOMAINE:-:80}
+    ports:
+      - "8080:80"
+    volumes:
+      - statiques:/statiques:ro
+    depends_on:
+      - api
+
 volumes:
   donnees_pg:
+  statiques:

@@ -6,3 +6,6 @@ staticfiles/
 .pytest_cache/
 .venv/
 node_modules/
+frontend/dist/
+frontend/e2e/captures/
+frontend/node_modules/

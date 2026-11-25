@@ -209,3 +209,12 @@ def test_admin_cree_un_groupe(client_api, admin, organisation, annee):
     }, format="json")
     assert r.status_code == 201, r.data
     assert Groupe.objects.get(nom="M1 MCS").code_inscription == r.data["code_inscription"]
+
+
+def test_referentiel_pour_les_formulaires(client_api, admin, organisation, annee, terminale, creer_eleve):
+    connecter(client_api, admin)
+    r = client_api.get("/api/admin/referentiel/")
+    assert r.data["organisations"] == [{"id": str(organisation.id), "nom": "Mathnexus Education"}]
+    assert r.data["annees"][0]["libelle"] == "2026-2027"
+    connecter(client_api, creer_eleve(terminale))
+    assert client_api.get("/api/admin/referentiel/").status_code == 403
