@@ -24,13 +24,14 @@ surtout en React, TypeScript et (plus tard) Celery.
 | Front | React 19 + TypeScript + Vite ; React Router, `fetch`, KaTeX, DOMPurify ; pas de gestionnaire d'état ni de bibliothèque de composants |
 | Tests front | Vitest + Testing Library ; scénario de bout en bout `frontend/e2e/scenario.mjs` (Playwright, Chrome) |
 | CI | GitHub Actions (`.github/workflows/tests.yml`) : pytest sur SQLite **et** PostgreSQL 16, tests de l'outil de conversion, `manage.py check --deploy`, `tsc -b`, Vitest, build |
-| Hébergement actuel | **Vercel (provisoire)** : API `mathnexus-api.vercel.app` (`backend/vercel.json`, `vercel_build.py`) et front (`frontend/vercel.json`, qui relaie `/api`, `/gestion`, `/static` vers l'API) |
-| Hébergement cible | Serveur unique ~4 Go : Docker Compose (API, worker Celery, Redis, PostgreSQL, front statique), Caddy pour le HTTPS. `docker-compose.yml` et `frontend/Caddyfile` existent déjà |
+| Hébergement **cible** | Serveur unique ~4 Go : Docker Compose (API, worker Celery, Celery Beat, Redis, PostgreSQL, front statique), Caddy pour le HTTPS automatique, déploiement par GitHub Actions, sauvegarde quotidienne chiffrée de la base vers un stockage externe. `docker-compose.yml` et `frontend/Caddyfile` existent déjà |
+| Hébergement **actuel** (à quitter) | Vercel : API `mathnexus-api.vercel.app` (`backend/vercel.json`, `vercel_build.py`) et front (`frontend/vercel.json`, qui relaie `/api`, `/gestion`, `/static` vers l'API) |
 
-**Décision (26/11/2026)** : Vercel sert au pilote ; on passe au serveur Docker quand Celery et Bunny Stream arrivent
-(phase 2). Les réglages gèrent les deux cas : `SANS_SERVEUR` (activé par la variable `VERCEL`) coupe les connexions
-persistantes et les curseurs côté serveur ; sans Redis, le cache de production passe par une table de la base
-(`createcachetable`), pour que la limitation des tentatives tienne entre instances.
+**Décision (26/11/2026)** : Vercel a été validé par erreur. La cible est le serveur Docker Compose du skill projet-dev.
+Vercel ne peut pas faire tourner de worker Celery ni de tâches planifiées : la migration passe donc **avant** Celery
+et Bunny Stream (voir « La suite »). En attendant, les réglages gèrent les deux cas : `SANS_SERVEUR` (activé par la
+variable `VERCEL`) coupe les connexions persistantes et les curseurs côté serveur ; sans Redis, le cache de production
+passe par une table de la base (`createcachetable`). Ce code propre à Vercel sera retiré après la bascule.
 
 ## Commandes
 
@@ -87,6 +88,14 @@ Le découpage cible du Plan complet (`comptes`, `scolarite`, `contenus`, `progre
 puis `ia` et `offres`) n'est pas encore appliqué tel quel : `organisations` joue le rôle de `scolarite` ;
 `evaluations` et `systeme` restent à créer.
 
+## Contrat avec le moteur de contenu
+
+`backend/contenus/FORMAT_PAQUET.md` et `backend/contenus/paquet.py` (`lire_paquet`) **font autorité** sur le format
+des paquets (format 1 aujourd'hui, `FORMAT_ACTUEL`). Le moteur de contenu (`mathnexus-moteur`, chantier 1) produit
+exactement ce format et vérifie ses paquets avec la même fonction. Toute évolution du format (par exemple les
+évaluations en données, pour la correction côté serveur) commence **ici** : on met à jour FORMAT_PAQUET.md et
+`paquet.py`, avec leurs tests, on augmente `FORMAT_ACTUEL` en gardant l'ancien format accepté, et le moteur suit.
+
 ## Conventions
 
 - Code, noms et messages en **français** (modèles, vues, routes, tests).
@@ -116,22 +125,48 @@ puis `ia` et `offres`) n'est pas encore appliqué tel quel : `organisations` jou
 
 Vérifié le 26/11/2026 : **88 tests backend** et 1 test de l'outil passent sur SQLite (le README annonce encore 83).
 
-**Manque par rapport à la Version 1 du skill** :
-- [ ] double authentification **TOTP** obligatoire pour admin et prof ;
-- [ ] **évaluations enregistrées sur le serveur** (temps par question), révision espacée, carnet d'erreurs (module `evaluations`) ;
-- [ ] **séance du jour** ;
-- [ ] **vidéos Bunny Stream** (jeton signé délivré par l'API après vérification des droits) ;
-- [ ] **Celery + Redis + Celery Beat** (import, encodage vidéo, calculs nocturnes, bilans parents, rappels) ;
-- [ ] fiche élève et **bilan parent** préparé automatiquement ;
-- [ ] application installable (**PWA**) ;
-- [ ] passage au **serveur Docker** + sauvegarde quotidienne chiffrée ;
-- [ ] import depuis le **moteur de contenu** (aujourd'hui : `convertir_parcours.py` sur les pages HTML) ;
-- [ ] migration de `prepa-cathy` (Supabase + Vercel) et de l'historique de Cathy.
+## La suite (Version 1)
 
-Ordre des chantiers (skill projet-dev) : le **moteur de contenu** (dépôt `parcours-complexite` comme modèle) passe
-avant la suite de la plateforme.
+Ordre des chantiers (skill projet-dev) : le **moteur de contenu** passe avant la suite de la plateforme
+(plan : doc projet « Moteur de contenu — plan »). Ensuite, dans cet ordre proposé, qui suit les dépendances
+(à valider au démarrage) :
+
+1. [ ] **Migration de Vercel vers le serveur Docker Compose** :
+   - comparer plusieurs fournisseurs de serveur (~4 Go) et montrer le total mensuel à Alseny avant de commander
+     (budget de la V1 : environ 10 $ par mois, serveur, Bunny, domaine et sauvegardes compris) ;
+   - `docker-compose.yml` a déjà `db` (PostgreSQL 16), `redis`, `api` (gunicorn) et `web` (Caddy, qui sert le front) ;
+     y ajouter le worker et le beat Celery à l'étape 2, et rendre Redis persistant ; secrets dans `.env` sur le
+     serveur, jamais dans le dépôt ;
+   - déploiement par GitHub Actions après les tests ;
+   - sauvegarde quotidienne chiffrée de la base vers un stockage externe, et **un essai de restauration** ;
+   - bascule : copie de la base de production actuelle (`pg_dump` / `pg_restore`), vérification, changement de DNS,
+     puis retrait de `vercel.json`, `vercel_build.py` et du mode `SANS_SERVEUR`.
+2. [ ] **Celery + Redis + Celery Beat** : module `systeme` (tâches, notifications, journal). Premiers usages : import
+   des paquets en tâche de fond, rappels. Redis remplace le cache en base (limitation des tentatives, cache).
+3. [ ] **Évaluations enregistrées sur le serveur** (module `evaluations`) : tentatives, réponses, **temps par question**,
+   note ; la correction se fait côté serveur et les réponses attendues ne partent jamais chez l'élève avant la remise.
+   Demande que les évaluations arrivent du moteur sous forme de données : évolution du format de paquet (voir
+   « Contrat avec le moteur »).
+4. [ ] **Carnet d'erreurs** : chaque question ratée y entre, avec la correction et l'étape d'origine.
+5. [ ] **Révision espacée** : planning de révision des questions du carnet, recalculé chaque nuit par Celery Beat.
+6. [ ] **Séance du jour** : préparée chaque nuit pour chaque élève (étapes ouvertes à faire, évaluation quotidienne
+   chronométrée, révisions dues).
+7. [ ] **Vidéos Bunny Stream** : envoi et suivi de l'encodage par Celery ; lecture adaptative par **jeton signé à durée
+   limitée**, délivré par l'API après vérification des droits, avec restriction de domaine ; les vidéos ne passent
+   jamais par le serveur de la plateforme ; clés Bunny dans les secrets.
+
+Aussi dans la Version 1, à placer dans cet ordre au moment voulu :
+- [ ] double authentification **TOTP** obligatoire pour admin et prof ;
+- [ ] fiche élève et **bilan parent** préparé automatiquement, envoyé par Alseny ;
+- [ ] application installable (**PWA**) ;
+- [ ] import depuis le **moteur de contenu**, puis retrait de `outils/convertir_parcours.py` ;
+- [ ] migration de `prepa-cathy` (Supabase + Vercel) et de l'historique de Cathy avant d'arrêter l'ancienne application.
+
+Pas en Version 1 : pgvector et IA, paiement, préproduction, supervision payante.
 
 ## Journal
 
 - 26/11/2026 — Création de ce fichier ; état reconstitué depuis le README et le code ; tests relancés.
   Décision : Vercel provisoire jusqu'à la phase 2.
+- 26/11/2026 — Correction : Vercel avait été validé par erreur ; la cible est le serveur Docker Compose, et la
+  migration passe avant Celery et Bunny. Ajout de « La suite » et du contrat de format avec le moteur.
