@@ -143,7 +143,7 @@ par sa tâche CI `contrat`). Toute évolution du format commence **ici** : spéc
   les casse ; entrées validées ; CSRF ; XSS ; secrets hors dépôt ; journal d'audit des actions sensibles ; données
   de mineurs minimales (téléphone parent obligatoire, consentement). Référence : OWASP ASVS niveau 2.
 
-## État (au 27/11/2026)
+## État (au 27/11/2026, soir)
 
 - **Phase 1 faite** (comptes et classes, contenus et progression, application React) :
   - comptes par téléphone (format international), Argon2id, statuts en attente / actif / suspendu / archivé ;
@@ -158,6 +158,19 @@ par sa tâche CI `contrat`). Toute évolution du format commence **ici** : spéc
   des fragments ; `preparer_demo`, `paquet_exemple`, `e2e/evaluation.mjs`. 173 tests serveur, 29 tests Vitest.
   Preuves faites dans la session (Linux) : scénario e2e (réponses, reprise, correction 2/3, chronomètre) ; temps par
   question en base ; paquet de Complexité v0.3.0 importé ; paquet d'essai : 4 725 octets, empreinte `389c1f16…7f253f`.
+- **V1 utilisable (branche `v1-devoirs`)** :
+  - 14 parcours préchargés (`backend/contenus_initiaux/`, reconstruits par `outils/construire_paquets.sh`) :
+    prépa (3), Terminale (complexes, étude de fonction, physique P1, P2), M1 MCS (Complexité, Fondements 0–4,
+    Réseau & Sécurité). Tout gratuit. Vidéos et images restent sur GitHub Pages (`--base-url`).
+  - `preparer_pilote` (lancée au déploiement) crée « Prépa ECG1 — Cathy », « Terminale S2 » et « M1 MCS — Alseny »
+    (privée, l'admin y est inscrit comme élève) et y rattache les parcours.
+  - Module `devoirs` : le prof donne un travail (libre, étape ou évaluation, à la classe ou à un élève, date limite) ;
+    l'élève répond (texte + photos) ; le prof corrige (note, mot, correction, photos) et rend ; liste « À corriger ».
+    Photos en base pour l'instant (Vercel n'a pas de disque) : à passer en stockage objet avec le serveur.
+  - Espace prof / Espace élève dans le menu ; page Contenus expliquée (rien à importer pour commencer).
+  - Preuve : `frontend/e2e/devoirs.mjs` passé de bout en bout (donner → rendre avec photo → corriger → lire).
+  - Limite connue : les QCM et autocorrections écrits en JavaScript dans les pages physique et Fondements
+    s'affichent sans correction automatique (à porter au format 2 par le moteur).
 - **Étape 1 de la feuille de route faite** : `claude-md` et `m4a-evaluations` fusionnées dans `main`.
 - Conséquence voulue de la fusion : la tâche CI `contrat` du moteur échoue (copie de `paquet.py` dépassée) jusqu'à
   **M4-b** côté moteur (recopier `paquet.py`, mettre à jour le contrat, sortir les QCM au format 2, copier `src/partages/`).
@@ -168,10 +181,10 @@ par sa tâche CI `contrat`). Toute évolution du format commence **ici** : spéc
 Cathy. La migration des parcours de Cathy et de Terminale passe avant le PDF (M5) du moteur.
 
 1. [x] **Remettre de l'ordre** : fusionner `claude-md` puis `m4a-evaluations` (CLAUDE.md combinés). *Fait le 27/11/2026.*
-2. [ ] **Contenu de Cathy** : migrer `parcours-algebre-lineaire` dans le moteur, importer le paquet.
-3. [ ] **Donner du travail** : le prof assigne à un élève ou une classe une étape, une série ou une évaluation, avec
+2. [x] **Contenu de Cathy** : paquets convertis et préchargés (pont `convertir_parcours.py` ; le moteur prendra le relais).
+3. [x] **Donner du travail** : le prof assigne à un élève ou une classe une étape, une série ou une évaluation, avec
    date limite ; plusieurs par jour possibles.
-4. [ ] **Corriger** : l'élève répond dans l'appli (réponses saisies ou photo de copie) ; le prof corrige (note,
+4. [x] **Corriger** : l'élève répond dans l'appli (réponses saisies ou photo de copie) ; le prof corrige (note,
    commentaires, correction rédigée) ; l'élève voit sa correction ; liste « à corriger » en tête du tableau de bord
    prof. Correction par Alseny, l'IA plus tard.
 5. [ ] **Mise en ligne sur un serveur** (Docker Compose, sortie de Vercel) : avant l'usage réel par Cathy.
@@ -185,9 +198,9 @@ Cathy. La migration des parcours de Cathy et de Terminale passe avant le PDF (M5
    - bascule : copie de la base de production actuelle (`pg_dump` / `pg_restore`) si elle contient des données
      réelles, vérification, changement de DNS, puis retrait de `vercel.json`, `vercel_build.py` et du mode
      `SANS_SERVEUR`, et désactivation des projets Vercel (avec l'accord explicite d'Alseny).
-6. [ ] **Mon espace élève** : classe privée « M1 MCS — Alseny » avec ses parcours du master (Complexité d'abord) ;
+6. [x] **Mon espace élève** : classe privée « M1 MCS — Alseny » avec ses parcours du master (Complexité d'abord) ;
    un seul compte, bouton « Espace prof / Espace élève ».
-7. [ ] **Classe pilote** : migrer `MathNexus-Terminale`, ouvrir la Terminale S2.
+7. [~] **Classe pilote** : parcours de Terminale préchargés, classe créée ; reste à inviter les élèves.
 8. [ ] **Ensuite** : séance du jour, révision espacée, carnet d'erreurs, Bunny Stream (moteur M6), Celery, bilan
    parent, application installable hors ligne. Ce qui est déjà noté :
    - **Celery + Redis + Celery Beat** : module `systeme` (tâches, notifications, journal) ; worker et beat ajoutés au
@@ -233,3 +246,7 @@ Pas en Version 1 : pgvector et IA, paiement, préproduction, supervision payante
 - 27/11/2026 — `claude-md` fusionnée dans `main` ; `main` fusionnée dans `m4a-evaluations` en combinant les deux
   CLAUDE.md (base M4-a, plus la stack détaillée, l'hébergement actuel, les conventions et « La suite » de
   `claude-md`) ; PR #1 fusionnée. Feuille de route V1 en 8 étapes recopiée (remplace « La suite ») ; étape 1 faite.
+- 27/11/2026 (soir) — Alseny demande un produit fini, utilisable tout de suite. Branche `v1-devoirs` : build Vercel
+  de l'API réparé (dépendances dans `pyproject.toml`), 14 paquets préchargés, `preparer_pilote`, module `devoirs`
+  (API + pages), espaces prof/élève, page Contenus clarifiée. Il reste à brancher une base PostgreSQL (Neon) au projet
+  Vercel de l'API ; le serveur Docker Compose (étape 5) reste à faire.

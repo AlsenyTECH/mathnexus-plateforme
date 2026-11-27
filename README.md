@@ -109,6 +109,16 @@ l'en-tête `X-CSRFToken` sur chaque requête qui modifie quelque chose.
 | `GET admin/contenus/versions/<id>/`, `.../etapes/<cle>/` | admin | Aperçu d'une version, brouillon compris |
 | `POST admin/contenus/versions/<id>/publier/` | admin | Publier (la précédente est archivée) |
 | `POST admin/groupes/<id>/parcours/`, `DELETE .../parcours/<slug>/` | admin | Rattacher, détacher un parcours |
+| `GET/POST groupes/<id>/devoirs/` | prof du groupe, admin | Devoirs donnés (avec le suivi : rendus, à corriger) ; donner un travail `{type, titre, consigne, eleve?, parcours?, cle_etape?, cle_evaluation?, date_limite?, note_sur?}` |
+| `GET groupes/<id>/parcours/<slug>/evaluations/` | prof du groupe, admin | Évaluations d'un parcours, pour les donner en devoir |
+| `GET/PATCH/DELETE devoirs/<id>/` | élève concerné (GET), prof | Le devoir ; pour le prof, l'état de chaque élève |
+| `GET mes-devoirs/?groupe=<id>` | élève | Ses devoirs et leur statut (`a_faire`, `en_retard`, `rendu`, `fait`, `corrige`) |
+| `POST devoirs/<id>/rendu/` | élève concerné | `{texte, envoyer}` ; refusé une fois la copie corrigée |
+| `POST devoirs/<id>/rendu/photos/` | élève concerné | Photo de copie (JPEG, PNG ou WebP, 3 Mo, 8 au plus) |
+| `GET/POST devoirs/<id>/eleves/<eleve>/` | prof | La copie ; corriger `{note, commentaire, correction, rendre}` |
+| `POST devoirs/<id>/eleves/<eleve>/photos/` | prof | Photo de correction (visible par l'élève une fois rendue) |
+| `GET a-corriger/` | prof, admin | Toutes les copies rendues pas encore corrigées |
+| `GET/DELETE photos/<id>/` | auteur, prof | Une photo |
 
 Valeurs de `destination` : `admin`, `attente`, `changer_mot_de_passe`, `prof`,
 `groupe` (avec `groupe`), `choix_groupe` (avec `groupes`), `aucun_groupe`.
@@ -123,6 +133,7 @@ backend/
   contenus/        Parcours, versions, parties, étapes, rattachements ; paquet.py = validation des paquets
   progression/     Progression par élève et par étape
   evaluations/     Évaluations et questions (format 2), tentatives et réponses ; tentatives.py = les règles
+  devoirs/         Devoirs, rendus (copie texte + photos), corrections ; regles.py = qui voit quoi, statuts
 frontend/
   src/api/         client (cookie de session + jeton CSRF) et types des réponses
   src/pages/       Entree (connexion, inscription…), Eleve, Prof, Admin

@@ -65,7 +65,10 @@ export function Cadre({ children, titre }: { children: ReactNode; titre?: string
             {u.est_admin && <Link to="/admin">Comptes</Link>}
             {u.est_admin && <Link to="/admin/classes">Classes</Link>}
             {u.est_admin && <Link to="/admin/contenus">Contenus</Link>}
-            {(estProf || u.est_admin) && <Link to="/prof">Mes classes</Link>}
+            {(estProf || u.est_admin || u.enseigne) && <Link to="/prof">Espace prof</Link>}
+            {(u.est_admin || u.enseigne) && u.classes_eleve?.length > 0 && (
+              <Link to={`/classe/${u.classes_eleve[0].id}`}>Espace élève</Link>
+            )}
             <span className="cadre-nom">{u.prenom}</span>
             <button type="button" className="btn ghost" onClick={() => void deconnecter()}>
               Se déconnecter

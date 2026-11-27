@@ -6,6 +6,7 @@ Vocabulaire générique, pour servir Mathnexus aujourd'hui et SANGEL demain :
 - une Inscription = le lien entre un compte et un groupe, avec son rôle et son statut.
 """
 import secrets
+import unicodedata
 import uuid
 
 from django.conf import settings
@@ -86,7 +87,9 @@ class Groupe(models.Model):
         super().save(*args, **kwargs)
 
     def nouveau_code(self):
-        prefixe = "".join(c for c in self.nom.upper() if c.isalnum())[:4] or "GRP"
+        # Sans accent : un code se dicte en classe et se tape sur n'importe quel clavier.
+        sans_accent = unicodedata.normalize("NFKD", self.nom).encode("ascii", "ignore").decode()
+        prefixe = "".join(c for c in sans_accent.upper() if c.isalnum())[:4] or "GRP"
         while True:
             code = f"{prefixe}-{self.annee.libelle[:4]}-{generer_suffixe()}"
             if not Groupe.objects.filter(code_inscription=code).exists():

@@ -236,14 +236,27 @@ def test_initialiser_plateforme_est_idempotent(db, monkeypatch):
 
     monkeypatch.setenv("ADMIN_TELEPHONE", "77 100 00 00")
     monkeypatch.setenv("ADMIN_MOT_DE_PASSE_PROVISOIRE", "Provisoire-tres-long-2026")
-    call_command("initialiser_plateforme")
-    call_command("initialiser_plateforme")
+    from pathlib import Path
+
+    from comptes.management.commands.initialiser_plateforme import DOSSIER_PAQUETS
+    from organisations.models import Groupe, Inscription
+
+    paquets = {p.stem for p in Path(DOSSIER_PAQUETS).glob("*.zip")}
+    assert {"nombres-complexes", "prepa-algebre-lineaire", "complexite-algorithmes"} <= paquets
+    for _ in range(2):
+        call_command("initialiser_plateforme")
+        call_command("preparer_pilote")
     admin = U.objects.get(is_superuser=True)
     assert admin.telephone == "+221771000000" and admin.doit_changer_mot_de_passe
     assert Organisation.objects.count() == 1 and AnneeScolaire.objects.filter(en_cours=True).count() == 1
-    assert set(Parcours.objects.values_list("slug", flat=True)) == {"nombres-complexes", "etude-de-fonction"}
-    assert VersionParcours.objects.filter(statut="publiee").count() == 2
-    assert VersionParcours.objects.count() == 2  # rien n'est réimporté
+    assert set(Parcours.objects.values_list("slug", flat=True)) == paquets
+    assert VersionParcours.objects.filter(statut="publiee").count() == len(paquets)
+    assert VersionParcours.objects.count() == len(paquets)  # rien n'est réimporté
+    # Les classes du pilote : créées une seule fois, l'admin élève de sa classe de master
+    assert Groupe.objects.count() == 3
+    m1 = Groupe.objects.get(nom="M1 MCS — Alseny")
+    assert Inscription.objects.get(groupe=m1).role == "eleve" and not m1.inscriptions_ouvertes
+    assert all(c.isascii() for c in Groupe.objects.get(nom="Prépa ECG1 — Cathy").code_inscription)
 
 
 def test_annee_scolaire_commence_en_octobre():

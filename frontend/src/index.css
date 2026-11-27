@@ -89,3 +89,30 @@ input:focus, select:focus, textarea:focus { border-color: var(--pen); outline: n
 .tableau-progression .prog { margin: 0; min-width: 120px; }
 .tableau-progression .prog-txt { display: none; }
 .graph-absent { color: var(--muted); font-style: italic; padding: 12px; }
+
+/* --- Devoirs ------------------------------------------------------------------------- */
+.badge.retard { background: var(--rouge-bg); color: var(--rouge); }
+.badge.attente { background: var(--pen-bg); color: var(--pen); }
+.titre-avec-action { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.liste-devoirs { list-style: none; padding: 0; margin: 8px 0 18px; display: grid; gap: 8px; }
+.ligne-devoir {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px;
+  text-decoration: none; color: inherit;
+}
+.ligne-devoir:hover { border-color: var(--pen); }
+.ligne-devoir-titre { font-weight: 600; }
+.ligne-devoir-infos { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.bloc-devoirs { margin-bottom: 8px; }
+.formulaire-devoir, .formulaire-correction { display: grid; gap: 12px; }
+.texte-libre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 10px 14px; margin: 6px 0; }
+.zone-copie { width: 100%; font: inherit; }
+.galerie { list-style: none; padding: 0; margin: 10px 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.galerie li { display: grid; gap: 6px; }
+.galerie img { width: 100%; height: 180px; object-fit: contain; border: 1px solid var(--line); border-radius: 4px; background: var(--grid); }
+.ajout-photos { margin: 8px 0; }
+.ajout-photos label.btn { cursor: pointer; display: inline-block; }
+.note-grande { font-family: var(--f-hand); font-size: 2.6rem; color: var(--rouge); margin: 0; }
+.correction { border-color: var(--prof); }
+.succes { color: var(--prof); background: var(--prof-bg); border-radius: 4px; padding: 8px 12px; margin: 10px 0; }
+.a-corriger { border-color: var(--pen); }

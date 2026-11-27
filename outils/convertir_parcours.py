@@ -23,9 +23,9 @@ import unicodedata
 import zipfile
 from pathlib import Path
 
-SECTION = re.compile(r'<section class="lesson"(?P<attrs>[^>]*)>(?P<corps>.*?)</section>', re.S)
-ATTR = re.compile(r'([\w-]+)="([^"]*)"')
-CORPS = re.compile(r'<div class="lbody">(?P<html>.*)</div>\s*$', re.S)
+SECTION = re.compile(r'<section class=["\']lesson["\'](?P<attrs>[^>]*)>(?P<corps>.*?)</section>', re.S)
+ATTR = re.compile(r'([\w-]+)=(?:"([^"]*)"|\'([^\']*)\')')
+CORPS = re.compile(r'<div class=["\']lbody["\']>(?P<html>.*)</div>\s*$', re.S)
 DUREE = re.compile(r'<span class="meta">\s*(\d+)\s*min')
 
 
@@ -41,7 +41,16 @@ def neutraliser(fragment):
         lambda m: f'<span role="button" data-composant="bouton"{m.group(1).replace(" type=\"button\"", "")}>{m.group(2)}</span>',
         fragment, flags=re.S,
     )
-    fragment = re.sub(r'<input\b([^>]*?)type="checkbox"([^>]*)>', r'<span data-composant="case"\1\2></span>', fragment)
+    fragment = re.sub(r'<input\b([^>]*?)type=["\']checkbox["\']([^>]*?)/?>', r'<span data-composant="case"\1\2></span>', fragment)
+    # Les autres champs (texte, nombre, radio, curseur) : l'application les recrée en vrais contrôles.
+    fragment = re.sub(
+        r"<input\b([^>]*?)/?>",
+        lambda m: "<span data-composant=\"champ\"" + re.sub(r"\btype=", "data-type=", m.group(1)) + "></span>",
+        fragment,
+    )
+    fragment = re.sub(r"<form\b([^>]*)>", r'<div data-composant="formulaire"\1>', fragment)
+    fragment = re.sub(r"</form>", "</div>", fragment)
+    fragment = re.sub(r"<textarea\b([^>]*)>.*?</textarea>", r'<span data-composant="champ" data-type="textarea"\1></span>', fragment, flags=re.S)
     fragment = re.sub(r"<script\b.*?</script>", "", fragment, flags=re.S)
     fragment = re.sub(r"<style\b.*?</style>", "", fragment, flags=re.S)
     fragment = re.sub(r"\s(on[a-z]+)=\"[^\"]*\"", "", fragment)
@@ -49,13 +58,26 @@ def neutraliser(fragment):
     return fragment.strip() + "\n"
 
 
-def convertir(source, slug, titre, matiere, cycle, description="", publiques=(), premium_prefixe="eval-"):
+URL_RELATIVE = re.compile(r'\s(src|href|poster)="(?!https?:|#|/|data:|mailto:|tel:)([^"]+)"')
+
+
+def absolutiser(fragment, base_url):
+    """Les vidéos, sous-titres et images restent sur le site public : leurs adresses deviennent absolues."""
+    if not base_url:
+        return fragment
+    base = base_url.rstrip("/") + "/"
+    fragment = URL_RELATIVE.sub(lambda m: f' {m.group(1)}="{base}{m.group(2)}"', fragment)
+    # Sous-titres servis par un autre site : la vidéo doit les demander en CORS.
+    return re.sub(r"<video\b(?![^>]*crossorigin)", '<video crossorigin="anonymous"', fragment)
+
+
+def convertir(source, slug, titre, matiere, cycle, description="", publiques=(), premium_prefixe="eval-", base_url=""):
     sections = list(SECTION.finditer(source))
     if not sections:
         raise ValueError("Aucune <section class=\"lesson\"> trouvée.")
     parties, fichiers, index_parties = [], {}, {}
     for s in sections:
-        attrs = {k: html.unescape(v) for k, v in ATTR.findall(s.group("attrs"))}
+        attrs = {k: html.unescape(v or w) for k, v, w in ATTR.findall(s.group("attrs"))}
         cle = attrs.get("id", "")
         titre_etape = attrs.get("data-title", cle)
         libelle_partie = attrs.get("data-part", "").strip()
@@ -81,7 +103,7 @@ def convertir(source, slug, titre, matiere, cycle, description="", publiques=(),
         if duree:
             etape["duree_min"] = int(duree.group(1))
         index_parties[cle_partie]["etapes"].append(etape)
-        fichiers[etape["fichier"]] = neutraliser(m.group("html"))
+        fichiers[etape["fichier"]] = absolutiser(neutraliser(m.group("html")), base_url)
     manifeste = {
         "format": 1,
         "parcours": {"slug": slug, "titre": titre, "matiere": matiere, "cycle": cycle, "description": description},
@@ -107,11 +129,12 @@ def main():
     a.add_argument("--description", default="")
     a.add_argument("--public", action="append", default=[], help="clé d'une étape à mettre en vitrine")
     a.add_argument("--premium-prefixe", default="eval-")
+    a.add_argument("--base-url", default="", help="adresse du site public : les liens relatifs (vidéos…) y pointent")
     a.add_argument("-o", "--sortie", required=True)
     args = a.parse_args()
     manifeste, fichiers = convertir(
         Path(args.source).read_text(encoding="utf-8"), args.slug, args.titre, args.matiere, args.cycle,
-        args.description, args.public, args.premium_prefixe,
+        args.description, args.public, args.premium_prefixe, args.base_url,
     )
     ecrire_zip(manifeste, fichiers, args.sortie)
     n = sum(len(p["etapes"]) for p in manifeste["parties"])

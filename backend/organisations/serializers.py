@@ -19,10 +19,11 @@ class GroupeSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if not request:
             return None
-        if request.user.est_admin:
-            return "admin"
+        # Une inscription l'emporte : l'admin inscrit comme élève dans sa propre classe y est élève.
         inscription = groupe.inscriptions.filter(utilisateur=request.user, statut="validee").first()
-        return inscription.role if inscription else None
+        if inscription:
+            return inscription.role
+        return "admin" if request.user.est_admin else None
 
 
 class GroupeAdminSerializer(serializers.ModelSerializer):
