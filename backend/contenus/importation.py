@@ -1,6 +1,8 @@
 from django.db import transaction
 from django.db.models import Max
 
+from evaluations.importation import enregistrer_evaluations
+
 from .models import Etape, Matiere, Parcours, Partie, VersionParcours
 from .paquet import lire_paquet
 
@@ -43,8 +45,9 @@ def importer_paquet(donnees: bytes, par=None) -> VersionParcours:
         partie = Partie.objects.create(version=version, cle=pl.cle, titre=pl.titre, ordre=i)
         for el in pl.etapes:
             ordre += 1
-            Etape.objects.create(
+            etape = Etape.objects.create(
                 version=version, partie=partie, cle=el.cle, titre=el.titre, ordre=ordre,
                 duree_min=el.duree_min, acces=el.acces, html=el.html,
             )
+            enregistrer_evaluations(etape, el.evaluations)  # format 2 ; liste vide au format 1
     return version

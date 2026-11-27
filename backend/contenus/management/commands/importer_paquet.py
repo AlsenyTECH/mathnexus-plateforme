@@ -23,5 +23,5 @@ class Command(BaseCommand):
             version.publier()
         self.stdout.write(self.style.SUCCESS(
             f"{version.parcours.slug} v{version.numero} ({version.get_statut_display()}) : "
-            f"{version.etapes.count()} étapes"
+            f"{version.etapes.count()} étapes, {version.evaluations.count()} évaluations"
         ))
