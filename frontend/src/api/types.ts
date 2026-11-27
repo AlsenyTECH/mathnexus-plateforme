@@ -18,6 +18,10 @@ export interface Utilisateur {
   statut: 'en_attente' | 'actif' | 'suspendu' | 'archive'
   doit_changer_mot_de_passe: boolean
   est_admin: boolean
+  /** Les classes où le compte travaille comme élève (bouton « Espace élève »). */
+  classes_eleve: { id: string; nom: string }[]
+  /** Le compte enseigne (ou administre) : bouton « Espace prof ». */
+  enseigne: boolean
 }
 
 export interface Session {
@@ -145,4 +149,94 @@ export interface ParcoursCatalogue {
   cycle: string
   versions: ResumeVersion[]
   groupes: string[]
+}
+
+// --- Devoirs ---------------------------------------------------------------------------
+
+export type TypeDevoir = 'etape' | 'evaluation' | 'libre'
+export type StatutDevoir = 'a_faire' | 'en_retard' | 'rendu' | 'fait' | 'corrige'
+
+export interface Devoir {
+  id: string
+  groupe: string
+  groupe_nom: string
+  type: TypeDevoir
+  titre: string
+  consigne: string
+  date_limite: string | null
+  note_sur: number
+  parcours: string | null
+  parcours_titre: string | null
+  cle_etape: string | null
+  cle_evaluation: string | null
+  eleve: string | null
+  eleve_nom: string | null
+  cree_le: string
+}
+
+export interface EtatDevoir {
+  statut: StatutDevoir
+  rendu_le: string | null
+  note: number | null
+  corrige_le: string | null
+  score: number | null
+  total: number | null
+  tentative_terminee_le: string | null
+}
+
+export interface PhotoCopie {
+  id: string
+  taille: number
+  url: string
+}
+
+export interface Rendu {
+  texte: string
+  rendu_le: string | null
+  note: number | null
+  commentaire: string
+  correction: string
+  corrige_le: string | null
+  photos: PhotoCopie[]
+  photos_correction: PhotoCopie[]
+}
+
+export interface DevoirProf extends Devoir {
+  effectif: number
+  a_corriger: number
+  termines: number
+  corriges: number
+}
+
+export type DevoirEleve = Devoir & EtatDevoir & { vue: 'eleve'; rendu: Rendu | null }
+
+export type SuiviDevoir = Devoir & {
+  vue: 'prof'
+  eleves: (EtatDevoir & { eleve: string; prenom: string; nom: string })[]
+}
+
+export type CopieEleve = EtatDevoir & {
+  devoir: Devoir
+  eleve: { id: string; prenom: string; nom: string }
+  rendu: Rendu | null
+}
+
+export interface CopieACorriger {
+  devoir: string
+  titre: string
+  groupe: string
+  groupe_nom: string
+  eleve: string
+  prenom: string
+  nom: string
+  rendu_le: string
+}
+
+export interface EvaluationResume {
+  cle: string
+  titre: string
+  cle_etape: string
+  etape_titre: string
+  duree_min: number | null
+  total: number
 }

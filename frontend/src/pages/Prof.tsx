@@ -3,12 +3,15 @@ import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { Groupe, Membre, ResumeParcours, Sommaire, TableauProgression } from '../api/types'
 import { BarreAvancement, Cadre, Chargement, MessageErreur, useDonnees } from '../composants/communs'
+import { ACorriger, DevoirsDeLaClasse } from './Devoirs'
 
 export function MesClasses() {
   const { donnees, erreur, chargement } = useDonnees(() => api.get<Groupe[]>('groupes/'), [])
   const classes = donnees?.filter((g) => g.mon_role === 'prof' || g.mon_role === 'admin')
+  const commeEleve = donnees?.filter((g) => g.mon_role === 'eleve') ?? []
   return (
     <Cadre titre="Mes classes">
+      <ACorriger />
       {chargement && <Chargement />}
       <MessageErreur erreur={erreur} />
       <ul className="liste-cartes">
@@ -21,6 +24,21 @@ export function MesClasses() {
           </li>
         ))}
       </ul>
+      {commeEleve.length > 0 && (
+        <>
+          <h2>Mes classes d'élève</h2>
+          <ul className="liste-cartes">
+            {commeEleve.map((g) => (
+              <li key={g.id}>
+                <Link className="carte-choix" to={`/classe/${g.id}`}>
+                  <strong>{g.nom}</strong>
+                  <span>Espace élève : mes parcours, ma progression</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </Cadre>
   )
 }
@@ -35,6 +53,7 @@ export function ClasseProf() {
     <Cadre titre={g.donnees ? `${g.donnees.nom} · ${g.donnees.annee_libelle}` : undefined}>
       <p className="fil"><Link to="/prof">← Mes classes</Link></p>
       <MessageErreur erreur={g.erreur ?? membres.erreur ?? parcours.erreur} />
+      <DevoirsDeLaClasse groupe={groupe} eleves={eleves} parcours={parcours.donnees ?? []} />
       <div className="grille-2 haut">
         <section>
           <h2>Parcours</h2>
@@ -54,6 +73,11 @@ export function ClasseProf() {
           {membres.chargement && <Chargement />}
           <ul className="liste-simple">
             {eleves.map((m) => <li key={m.utilisateur}>{m.prenom} {m.nom}</li>)}
+          </ul>
+          {eleves.length === 0 && (
+            <p className="discret">Aucun élève pour l'instant : donne-leur le code d'inscription de la classe (menu « Classes »).</p>
+          )}
+          <ul className="liste-simple">
           </ul>
         </section>
       </div>

@@ -8,12 +8,16 @@ import { FournisseurSession, routePour, useSession } from './session'
 const eleve = () => import('./pages/Eleve')
 const prof = () => import('./pages/Prof')
 const admin = () => import('./pages/Admin')
+const devoirs = () => import('./pages/Devoirs')
 const TableauDeBordClasse = lazy(() => eleve().then((m) => ({ default: m.TableauDeBordClasse })))
 const SommaireParcours = lazy(() => eleve().then((m) => ({ default: m.SommaireParcours })))
 const LecteurEtape = lazy(() => eleve().then((m) => ({ default: m.LecteurEtape })))
 const MesClasses = lazy(() => prof().then((m) => ({ default: m.MesClasses })))
 const ClasseProf = lazy(() => prof().then((m) => ({ default: m.ClasseProf })))
 const ProgressionProf = lazy(() => prof().then((m) => ({ default: m.ProgressionProf })))
+const PageDevoirEleve = lazy(() => devoirs().then((m) => ({ default: m.PageDevoirEleve })))
+const SuiviDevoir = lazy(() => devoirs().then((m) => ({ default: m.SuiviDevoir })))
+const CorrigerCopie = lazy(() => devoirs().then((m) => ({ default: m.CorrigerCopie })))
 const ComptesEnAttente = lazy(() => admin().then((m) => ({ default: m.ComptesEnAttente })))
 const Classes = lazy(() => admin().then((m) => ({ default: m.Classes })))
 const Contenus = lazy(() => admin().then((m) => ({ default: m.Contenus })))
@@ -45,10 +49,13 @@ export function Itineraires() {
       <Route path="/choisir" element={<Protege><ChoisirClasse /></Protege>} />
       <Route path="/aucune-classe" element={<Protege><AucuneClasse /></Protege>} />
       <Route path="/classe/:groupe" element={<Protege><TableauDeBordClasse /></Protege>} />
+      <Route path="/classe/:groupe/devoirs/:devoir" element={<Protege><PageDevoirEleve /></Protege>} />
       <Route path="/classe/:groupe/:slug" element={<Protege><SommaireParcours /></Protege>} />
       <Route path="/classe/:groupe/:slug/:cle" element={<Protege><LecteurEtape /></Protege>} />
       <Route path="/prof" element={<Protege><MesClasses /></Protege>} />
       <Route path="/prof/:groupe" element={<Protege><ClasseProf /></Protege>} />
+      <Route path="/prof/:groupe/devoirs/:devoir" element={<Protege><SuiviDevoir /></Protege>} />
+      <Route path="/prof/:groupe/devoirs/:devoir/:eleve" element={<Protege><CorrigerCopie /></Protege>} />
       <Route path="/prof/:groupe/:slug" element={<Protege><ProgressionProf /></Protege>} />
       <Route path="/admin" element={<Protege role="admin"><ComptesEnAttente /></Protege>} />
       <Route path="/admin/classes" element={<Protege role="admin"><Classes /></Protege>} />

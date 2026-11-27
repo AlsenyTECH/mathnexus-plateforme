@@ -241,6 +241,18 @@ export function Contenus() {
 
   return (
     <Cadre titre="Contenus">
+      <section className="encart">
+        <p>
+          Tes parcours sont <strong>déjà chargés</strong> : ils sont listés ci-dessous et rattachés à tes classes.
+          Tu n'as rien à importer pour commencer.
+        </p>
+        <p className="discret">
+          Ce formulaire sert seulement à ajouter une nouvelle version d'un parcours : un <strong>paquet</strong> (.zip)
+          construit par le moteur de contenu (<code>moteur paquet</code>). Ce n'est ni un PDF, ni une image, ni le
+          dossier d'un site. Une version importée arrive en <em>brouillon</em> : tu la vérifies, puis tu la publies.
+        </p>
+      </section>
+      <h2>Ajouter une version (paquet du moteur)</h2>
       <form className="ligne-formulaire" onSubmit={importer}>
         <input type="file" name="paquet" accept=".zip,application/zip" aria-label="Paquet de parcours (.zip)" required />
         <button className="btn" type="submit" disabled={envoi}>{envoi ? 'Import…' : 'Importer le paquet'}</button>

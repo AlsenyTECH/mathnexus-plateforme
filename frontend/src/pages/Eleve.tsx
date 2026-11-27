@@ -6,6 +6,7 @@ import { BarreAvancement, Cadre, Chargement, MessageErreur, useDonnees } from '.
 import { Contenu } from '../lecteur/Contenu'
 import { useSession } from '../session'
 import { etapeAReprendre, numeroterEtapes } from '../utilitaires'
+import { MesDevoirs } from './Devoirs'
 
 const RAISONS: Record<string, string> = {
   premium: 'Offre Premium',
@@ -20,6 +21,8 @@ export function TableauDeBordClasse() {
     <Cadre titre={g.donnees ? `${g.donnees.nom} · ${g.donnees.annee_libelle}` : undefined}>
       {(g.chargement || parcours.chargement) && <Chargement />}
       <MessageErreur erreur={g.erreur ?? parcours.erreur} />
+      <MesDevoirs groupe={groupe} />
+      <h2>Mes parcours</h2>
       {parcours.donnees?.length === 0 && <p className="encart">Aucun parcours n'est encore ouvert dans ta classe.</p>}
       <ul className="liste-cartes">
         {parcours.donnees?.map((p) => (
