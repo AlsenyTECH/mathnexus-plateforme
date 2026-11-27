@@ -52,7 +52,7 @@ async function assurerJetonCsrf(): Promise<void> {
   jetonDemande = null
 }
 
-type Methode = 'GET' | 'POST' | 'PATCH' | 'DELETE'
+type Methode = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export async function requete<T>(methode: Methode, chemin: string, corps?: unknown): Promise<T> {
   const entetes: Record<string, string> = { Accept: 'application/json' }
@@ -88,6 +88,7 @@ export async function requete<T>(methode: Methode, chemin: string, corps?: unkno
 export const api = {
   get: <T>(chemin: string) => requete<T>('GET', chemin),
   post: <T>(chemin: string, corps?: unknown) => requete<T>('POST', chemin, corps),
+  put: <T>(chemin: string, corps?: unknown) => requete<T>('PUT', chemin, corps),
   patch: <T>(chemin: string, corps?: unknown) => requete<T>('PATCH', chemin, corps),
   delete: <T>(chemin: string) => requete<T>('DELETE', chemin),
 }

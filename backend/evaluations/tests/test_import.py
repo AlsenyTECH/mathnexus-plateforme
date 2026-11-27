@@ -54,3 +54,26 @@ def test_commandes_paquet_exemple_et_importer_paquet(tmp_path):
     sortie = StringIO()
     call_command("importer_paquet", str(chemin), "--publier", stdout=sortie)
     assert "demo-evaluations v1 (Publiée) : 2 étapes, 2 évaluations" in sortie.getvalue()
+
+
+def test_preparer_demo_refuse_hors_developpement(settings):
+    from django.core.management import CommandError
+
+    settings.DEBUG = False
+    with pytest.raises(CommandError, match="développement"):
+        call_command("preparer_demo", stdout=StringIO())
+
+
+def test_preparer_demo_relancable(settings):
+    from contenus.models import Rattachement
+    from organisations.models import Inscription
+
+    settings.DEBUG = True
+    premiere = StringIO()
+    call_command("preparer_demo", stdout=premiere)
+    assert "mot de passe :" in premiere.getvalue()
+    seconde = StringIO()
+    call_command("preparer_demo", stdout=seconde)
+    assert "mot de passe inchangé" in seconde.getvalue()
+    assert Rattachement.objects.count() == 1 and Inscription.objects.count() == 1
+    assert VersionParcours.objects.get().statut == "publiee"

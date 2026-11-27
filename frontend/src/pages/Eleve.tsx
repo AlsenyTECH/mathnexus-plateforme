@@ -188,7 +188,7 @@ export function LecteurEtape() {
               </p>
               <h2>{e.titre}</h2>
             </header>
-            <Contenu html={e.html} prefixeNotes={`note:${session?.utilisateur.id}:${slug}`} />
+            <Contenu html={e.html} prefixeNotes={`note:${session?.utilisateur.id}:${slug}`} contexte={{ groupe, slug }} />
           </section>
         )}
         {e && !etape.chargement && (
