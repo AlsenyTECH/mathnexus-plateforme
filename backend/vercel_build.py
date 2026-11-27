@@ -13,6 +13,12 @@ def manage(*args):
 
 if __name__ == "__main__":
     if os.environ.get("VERCEL_ENV") == "production":
+        if not os.environ.get("DATABASE_URL"):
+            # Sans base PostgreSQL, Vercel garderait une base SQLite jetable : tout serait perdu.
+            sys.exit(
+                "DATABASE_URL manque : branchez une base PostgreSQL (Vercel → Storage → Neon) "
+                "au projet mathnexus-api pour la Production, puis redéployez."
+            )
         manage("migrate", "--noinput")
         manage("createcachetable")
         manage("initialiser_plateforme")
