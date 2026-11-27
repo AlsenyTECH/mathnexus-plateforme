@@ -193,3 +193,31 @@ def test_etat_de_session_sans_erreur(client_api, terminale, creer_eleve):
     eleve.statut = "suspendu"
     eleve.save()
     assert client_api.get("/api/auth/session/").data["utilisateur"] is None
+
+
+# --- Numéro tapé sans indicatif : admin Django et createsuperuser ------------------------
+
+def test_get_by_natural_key_normalise_le_numero(admin):
+    """Le compte « +221771000000 » se retrouve quelle que soit l'écriture du numéro."""
+    for saisie in ("771000000", "77 100 00 00", "+221771000000", "00221771000000"):
+        assert Utilisateur.objects.get_by_natural_key(saisie) == admin
+    with pytest.raises(Utilisateur.DoesNotExist):
+        Utilisateur.objects.get_by_natural_key("pas un numéro")
+
+
+def test_connexion_admin_django_sans_indicatif(client, db):
+    Utilisateur.objects.create_superuser("+221775148833", MDP, prenom="Alseny", nom="Diallo")
+    reponse = client.post("/gestion/login/?next=/gestion/", {"username": "775148833", "password": MDP})
+    assert reponse.status_code == 302 and reponse.url == "/gestion/"
+    assert client.get("/gestion/").status_code == 200
+
+
+def test_createsuperuser_reconnait_un_numero_deja_pris(db, monkeypatch):
+    from django.core.management import CommandError, call_command
+
+    monkeypatch.setenv("DJANGO_SUPERUSER_PASSWORD", MDP)
+    options = {"interactive": False, "prenom": "Alseny", "nom": "Diallo", "verbosity": 0}
+    call_command("createsuperuser", telephone="775148833", **options)
+    assert Utilisateur.objects.get().telephone == "+221775148833"
+    with pytest.raises(CommandError, match="already taken|déjà"):
+        call_command("createsuperuser", telephone="77 514 88 33", **options)

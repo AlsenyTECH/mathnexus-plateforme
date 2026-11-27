@@ -1,6 +1,7 @@
 import uuid
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -28,6 +29,19 @@ class UtilisateurManager(BaseUserManager):
     def create_superuser(self, telephone, password=None, **champs):
         champs.update(is_staff=True, is_superuser=True, statut=Utilisateur.Statut.ACTIF)
         return self._creer(telephone, password, **champs)
+
+    def get_by_natural_key(self, telephone):
+        """Retrouve un compte par son numéro, quelle que soit la façon dont il est tapé.
+
+        Django passe par cette méthode pour la connexion à l'admin (ModelBackend) et pour
+        vérifier dans createsuperuser qu'un numéro n'est pas déjà pris. Sans normalisation,
+        « 775148833 » ne retrouvait pas le compte enregistré « +221775148833 ».
+        """
+        try:
+            telephone = normaliser_telephone(telephone)
+        except ValidationError:
+            pass  # numéro impossible : la recherche échoue normalement (DoesNotExist)
+        return super().get_by_natural_key(telephone)
 
 
 class Utilisateur(AbstractBaseUser, PermissionsMixin):

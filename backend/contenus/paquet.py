@@ -233,11 +233,29 @@ def lire_paquet(donnees: bytes) -> PaquetLu:
     )
 
 
-def construire_paquet(manifeste: dict, fichiers: dict) -> bytes:
-    """Fabrique un paquet en mémoire (utilisé par les outils et les tests)."""
+# Entrées ZIP reproductibles : même contenu → mêmes octets, donc même empreinte (comme le moteur).
+DATE_FIXE = (1980, 1, 1, 0, 0, 0)   # la plus petite date que le format ZIP sait écrire
+SYSTEME_UNIX = 3
+DROITS = 0o100644 << 16             # fichier ordinaire, rw-r--r--
+
+
+def construire_paquet(manifeste: dict, fichiers: dict, compresser: bool = False) -> bytes:
+    """Fabrique un paquet en mémoire (utilisé par les outils et les tests).
+
+    L'archive est reproductible : chaque entrée a la même date, le même système et les mêmes
+    droits, manifeste.json vient en premier et les autres fichiers suivent triés. Deux appels
+    avec le même contenu donnent donc exactement les mêmes octets. Par défaut les entrées sont
+    stockées sans compression, comme le fait le moteur ; `compresser=True` sert aux tests qui
+    ont besoin d'une archive compressée (bombe de décompression).
+    """
+    contenus = {"manifeste.json": json.dumps(manifeste, ensure_ascii=False, indent=1), **fichiers}
+    noms = sorted(contenus, key=lambda nom: (nom != "manifeste.json", nom))
     tampon = io.BytesIO()
-    with zipfile.ZipFile(tampon, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("manifeste.json", json.dumps(manifeste, ensure_ascii=False, indent=1))
-        for nom, contenu in sorted(fichiers.items()):
-            z.writestr(nom, contenu)
+    with zipfile.ZipFile(tampon, "w") as z:
+        for nom in noms:
+            info = zipfile.ZipInfo(nom, date_time=DATE_FIXE)
+            info.compress_type = zipfile.ZIP_DEFLATED if compresser else zipfile.ZIP_STORED
+            info.create_system = SYSTEME_UNIX
+            info.external_attr = DROITS
+            z.writestr(info, contenus[nom])
     return tampon.getvalue()
