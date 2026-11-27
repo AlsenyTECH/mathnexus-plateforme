@@ -16,5 +16,6 @@ if __name__ == "__main__":
         manage("migrate", "--noinput")
         manage("createcachetable")
         manage("initialiser_plateforme")
+        manage("preparer_pilote")
     else:
         print("Déploiement de prévisualisation : la base n'est pas modifiée.")

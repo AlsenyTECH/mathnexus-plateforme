@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "contenus",
     "progression",
     "evaluations",
+    "devoirs",
 ]
 
 MIDDLEWARE = [

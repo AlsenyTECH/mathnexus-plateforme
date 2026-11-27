@@ -100,10 +100,27 @@ class ChangementMotDePasseSerializer(serializers.Serializer):
 
 
 class MoiSerializer(serializers.ModelSerializer):
+    classes_eleve = serializers.SerializerMethodField()
+    enseigne = serializers.SerializerMethodField()
+
     class Meta:
         model = Utilisateur
-        fields = ["id", "prenom", "nom", "telephone", "email", "statut", "doit_changer_mot_de_passe", "est_admin"]
+        fields = [
+            "id", "prenom", "nom", "telephone", "email", "statut", "doit_changer_mot_de_passe", "est_admin",
+            "classes_eleve", "enseigne",
+        ]
         read_only_fields = fields
+
+    def get_classes_eleve(self, u):
+        """Les classes où le compte travaille comme élève : sert au bouton « Espace élève »."""
+        from devoirs.regles import groupes_comme_eleve
+
+        return [{"id": str(g.id), "nom": g.nom} for g in groupes_comme_eleve(u)]
+
+    def get_enseigne(self, u):
+        from organisations.acces import groupes_enseignes
+
+        return u.est_admin or groupes_enseignes(u).exists()
 
 
 class CompteEnAttenteSerializer(serializers.ModelSerializer):

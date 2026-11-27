@@ -3,6 +3,7 @@ from django.urls import include, path
 
 from comptes import vues as c
 from contenus import vues as ct
+from devoirs import vues as dv
 from evaluations import vues as ev
 from organisations import vues as o
 from progression import vues as pr
@@ -35,6 +36,17 @@ api = [
     path("tentatives/<uuid:tentative_id>/", ev.DetailTentative.as_view()),
     path("tentatives/<uuid:tentative_id>/reponses/<slug:cle>/", ev.Repondre.as_view()),
     path("tentatives/<uuid:tentative_id>/terminer/", ev.Terminer.as_view()),
+    # Devoirs : le prof donne du travail et corrige, l'élève rend et lit sa correction
+    path("groupes/<uuid:pk>/devoirs/", dv.DevoirsDuGroupe.as_view()),
+    path("groupes/<uuid:pk>/parcours/<slug:slug>/evaluations/", dv.EvaluationsDuParcours.as_view()),
+    path("devoirs/<uuid:pk>/", dv.DetailDevoir.as_view()),
+    path("devoirs/<uuid:pk>/rendu/", dv.RendreDevoir.as_view()),
+    path("devoirs/<uuid:pk>/rendu/photos/", dv.PhotosDuRendu.as_view()),
+    path("devoirs/<uuid:pk>/eleves/<uuid:eleve_id>/", dv.CopieEleve.as_view()),
+    path("devoirs/<uuid:pk>/eleves/<uuid:eleve_id>/photos/", dv.PhotosCorrection.as_view()),
+    path("mes-devoirs/", dv.MesDevoirs.as_view()),
+    path("a-corriger/", dv.ACorriger.as_view()),
+    path("photos/<uuid:pk>/", dv.DetailPhoto.as_view()),
     # Vitrine publique
     path("public/parcours/<slug:slug>/etapes/<slug:cle>/", ct.EtapePublique.as_view()),
     # Administration

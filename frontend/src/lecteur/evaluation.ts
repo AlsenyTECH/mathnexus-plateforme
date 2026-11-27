@@ -23,6 +23,20 @@ function transformerControles(racine: HTMLElement): void {
     caseACocher.dataset.p = span.dataset.p ?? '0'
     span.replaceWith(caseACocher)
   })
+  // Champs des pages d'origine (texte, nombre, radio, curseur) : recréés en vrais contrôles.
+  const ATTRIBUTS = ['name', 'value', 'min', 'max', 'step', 'inputmode', 'placeholder', 'id', 'class', 'autocomplete']
+  racine.querySelectorAll<HTMLElement>('[data-composant="champ"]').forEach((span) => {
+    const type = span.dataset.type ?? 'text'
+    const champ = document.createElement(type === 'textarea' ? 'textarea' : 'input')
+    if (champ instanceof HTMLInputElement) {
+      champ.type = ['text', 'number', 'radio', 'range'].includes(type) ? type : 'text'
+    }
+    for (const nom of ATTRIBUTS) {
+      const valeur = span.getAttribute(nom)
+      if (valeur !== null) champ.setAttribute(nom, valeur)
+    }
+    span.replaceWith(champ)
+  })
 }
 
 export function avisSurNote(note: number): string {
