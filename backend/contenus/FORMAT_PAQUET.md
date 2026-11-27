@@ -1,4 +1,4 @@
-# Format des paquets de parcours (format 1)
+# Format des paquets de parcours (format 2)
 
 Le moteur de parcours produit, pour chaque parcours, une archive ZIP que la plateforme importe.
 
@@ -6,8 +6,16 @@ Le moteur de parcours produit, pour chaque parcours, une archive ZIP que la plat
 manifeste.json
 etapes/carte.html
 etapes/algebrique.html
+evaluations/carte-sortie.json      (format 2)
 …
 ```
+
+| Format | Ce qu'il apporte | Accepté |
+| --- | --- | --- |
+| 1 | manifeste + fragments HTML | oui, sans limite de date |
+| 2 | + évaluations en données ([plus bas](#format-2--les-évaluations-en-données)) | oui (`FORMAT_ACTUEL`) |
+
+Un paquet au format 1 reste valable tel quel. Le champ `evaluations` n'existe qu'à partir du format 2.
 
 ## manifeste.json
 
@@ -60,6 +68,72 @@ Les composants interactifs se déclarent par des attributs, et c'est l'applicati
 ```
 
 Ainsi, même un paquet modifié par un tiers ne peut pas exécuter de code chez les élèves.
+
+## Format 2 : les évaluations en données
+
+Une évaluation (QCM d'entrée ou de sortie, évaluation chronométrée) n'est plus écrite en HTML :
+c'est un fichier JSON `evaluations/<nom>.json`, déclaré par l'étape qui la contient. La plateforme
+range les bonnes réponses en base et **ne les envoie au navigateur qu'après la fin de la tentative**
+de l'élève ; le score et l'échéance sont calculés par le serveur.
+
+Dans le manifeste, une étape déclare ses évaluations :
+
+```json
+{"cle": "carte", "titre": "La carte d'un exercice de bac", "fichier": "etapes/carte.html",
+ "evaluations": [{"cle": "carte-sortie", "fichier": "evaluations/carte-sortie.json"}]}
+```
+
+Dans le fragment de cette étape, un emplacement marque où l'évaluation s'affiche :
+
+```html
+<div data-composant="evaluation" data-cle="carte-sortie"></div>
+```
+
+Le fichier `evaluations/carte-sortie.json` :
+
+```json
+{
+  "titre": "Test de sortie",
+  "role": "sortie",
+  "consigne": "<p>Réponds, puis termine pour voir la correction.</p>",
+  "duree_min": 5,
+  "seuil": 2,
+  "questions": [
+    {"cle": "module", "type": "choix_unique",
+     "enonce": "<p>Le module de \\(z = 3 + 4i\\) vaut :</p>",
+     "choix": ["\\(5\\)", "\\(7\\)", "\\(25\\)", "\\(\\sqrt{7}\\)"],
+     "bonnes": [0], "points": 1,
+     "explication": "<p>\\(|z| = \\sqrt{3^2 + 4^2} = 5\\).</p>"},
+    {"cle": "reels", "type": "choix_multiple",
+     "enonce": "<p>Lesquels sont réels ?</p>",
+     "choix": ["\\(i^2\\)", "\\(i^3\\)", "\\((1+i)(1-i)\\)"],
+     "bonnes": [0, 2], "points": 2}
+  ]
+}
+```
+
+| Champ | Règle |
+| --- | --- |
+| `cle` (évaluation, dans le manifeste) | comme une clé d'étape ; **unique dans tout le parcours** et **stable** : les tentatives des élèves y sont accrochées |
+| `fichier` | `evaluations/<nom>.json`, présent dans l'archive, UTF-8, 512 Ko au plus |
+| emplacement | le fragment de l'étape contient **exactement un** `data-composant="evaluation"` avec ce `data-cle` ; un emplacement sans évaluation déclarée par l'étape est refusé |
+| `titre` | obligatoire, 200 caractères au plus |
+| `role` | `entree` (test d'entrée), `sortie` (test de sortie), `evaluation` (par défaut) ; informatif pour l'instant |
+| `consigne` | HTML facultatif |
+| `duree_min` | entier de 1 à 600, facultatif ; présent : l'évaluation est chronométrée et le serveur refuse les réponses après l'échéance |
+| `seuil` | points à atteindre pour réussir, facultatif, par quarts de point, au plus le total |
+| `questions` | liste non vide, 200 au plus |
+| `cle` (question) | comme une clé d'étape, unique dans l'évaluation, **stable** (le temps par question se compare d'une version à l'autre) |
+| `type` | `choix_unique` (par défaut) ou `choix_multiple` |
+| `enonce` | HTML obligatoire |
+| `choix` | 2 à 12 textes HTML |
+| `bonnes` | indices des bonnes réponses, **à partir de 0** ; exactement un pour `choix_unique` ; pour `choix_multiple`, au moins un et pas tous |
+| `points` | de 0,25 à 100, par quarts de point, 1 par défaut ; une question à choix multiple est notée tout ou rien |
+| `explication` | HTML facultatif, montré avec la correction |
+
+Tout champ inconnu est refusé (une faute de frappe comme `bonne` au lieu de `bonnes` ne passe pas).
+Les morceaux de HTML (`consigne`, `enonce`, `choix`, `explication`) suivent les mêmes règles que
+les fragments ; les formules restent en TeX.
 
 ## Import
 

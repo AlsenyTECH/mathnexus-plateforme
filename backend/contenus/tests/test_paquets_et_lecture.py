@@ -111,12 +111,12 @@ def test_paquet_refuse_liste_tous_les_problemes():
 
 def test_fichier_absent_et_format_inconnu():
     m = manifeste()
-    m["format"] = 2
+    m["format"] = 3
     fichiers = {k: v for k, v in FICHIERS.items() if k != "etapes/racines.html"}
     with pytest.raises(PaquetInvalide) as e:
         lire_paquet(paquet(m, fichiers))
     texte = " | ".join(e.value.problemes)
-    assert "format 2" in texte and "absent de l'archive" in texte
+    assert "format 3" in texte and "absent de l'archive" in texte
 
 
 def test_remontee_de_dossier_refusee_meme_sous_etapes():
