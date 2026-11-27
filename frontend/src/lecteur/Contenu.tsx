@@ -4,6 +4,7 @@ import { monterEvaluations } from './evaluation'
 import { monterFigures } from './figures'
 import { rendreFormules } from './maths'
 import { nettoyer } from './nettoyage'
+import '../style/blocs.css'
 
 /**
  * Affiche le HTML d'une étape et y monte les composants (formules, graphiques, évaluations).

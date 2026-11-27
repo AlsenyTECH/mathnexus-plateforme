@@ -1,0 +1,104 @@
+/*
+ * Les blocs des fragments du moteur de contenu (paquets au format 1 et 2) : preuve, démonstration,
+ * « dans le master », examen, code, pseudo-code, atelier, animateur, mesure, QCM statique, quatre temps.
+ *
+ * Règles reprises du style commun du moteur (mathnexus-moteur/moteur/modele/style.css) et du style
+ * de Complexité, pour les seules classes que cahier.css ne connaît pas. Toutes sont limitées au
+ * corps d'une étape (.lbody) : des noms génériques comme .code ou .temps ne touchent pas l'application.
+ */
+
+/* Couleurs et police propres à ces blocs (or : examen, « dans le master » ; code) */
+:root{
+  --code-bg:#f2f5fb; --code-fg:#243055; --code-line:#ccd6ea; --sortie-bg:#eef3ea; --sortie-fg:#2b4a32;
+  --or:#8a5a00; --or-bg:#fdf5e3;
+  --f-code:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --code-bg:#121b18; --code-fg:#d6e4dc; --code-line:#2f4139; --sortie-bg:#16251d; --sortie-fg:#9fd9b4;
+    --or:#e8c56a; --or-bg:#2e2718;
+  }
+}
+:root[data-theme="dark"]{
+  --code-bg:#121b18; --code-fg:#d6e4dc; --code-line:#2f4139; --sortie-bg:#16251d; --sortie-fg:#9fd9b4;
+  --or:#e8c56a; --or-bg:#2e2718;
+}
+
+/* --- Repris de style commun du moteur --- */
+.lbody .demo{border-left:3px solid var(--pen);background:var(--pen-bg);border-radius:0 4px 4px 0;padding:12px 16px}
+.lbody .demo .lab{color:var(--pen)}
+.lbody .demo p,.lbody .demo ul,.lbody .demo ol{margin:6px 0}
+.lbody .demo ul,.lbody .demo ol{padding-left:1.3em}
+.lbody .demo .cqfd{text-align:right;color:var(--pen);font-weight:700;margin:4px 0 0}
+.lbody .master{border:1px solid var(--or);border-radius:4px;background:var(--or-bg);padding:12px 16px;color:var(--ink)}
+.lbody .master .lab{color:var(--or)}
+.lbody .master p,.lbody .master ul{margin:6px 0}
+.lbody .master ul{padding-left:1.3em}
+.lbody .code{border:1px solid var(--code-line);border-radius:4px;background:var(--code-bg);overflow:hidden}
+.lbody .code-h{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--code-line);background:var(--surface)}
+.lbody .code-h .lab{margin:0}
+.lbody .code-lang{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--btn-fg);background:var(--pen);padding:2px 7px;border-radius:3px}
+.lbody .code-lang.sage{background:var(--prof)}
+.lbody .code pre{margin:0;padding:12px 14px;overflow-x:auto;font-family:var(--f-code);font-size:.88rem;line-height:1.55;color:var(--code-fg);tab-size:4}
+.lbody .code .sortie{border-top:1px dashed var(--code-line);background:var(--sortie-bg);color:var(--sortie-fg)}
+.lbody .code .sortie::before{content:"sortie";display:block;font-family:var(--f-body);font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;opacity:.75;margin-bottom:5px}
+.lbody .exo-n .niv{font-size:.72rem;color:var(--muted);letter-spacing:.04em}
+.lbody .temps{display:flex;flex-direction:column;gap:14px;min-width:0}
+.lbody .qcm{border:1.5px solid var(--pen);border-radius:4px;background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.lbody .qcm > .lab{color:var(--pen);margin:0}
+.lbody .qcm-q{border:0;border-top:1px solid var(--line);margin:0;padding:10px 0 0;display:flex;flex-direction:column;gap:5px;min-width:0}
+.lbody .qcm-q legend{font-weight:700;padding:0;float:left;width:100%;margin-bottom:6px}
+.lbody .preuve{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:16px;min-width:0}
+.lbody .idee{background:var(--or-bg);border-left:3px solid var(--or);border-radius:0 4px 4px 0;padding:10px 14px}
+.lbody .idee .lab{color:var(--or)}
+.lbody .idee p{margin:4px 0}
+.lbody .squelette{border:1px dashed var(--pen);border-radius:4px;padding:10px 14px;background:var(--surface)}
+.lbody .squelette .lab{color:var(--pen)}
+.lbody .squelette ol{margin:6px 0;padding-left:1.4em}
+.lbody .squelette li{margin:6px 0}
+.lbody .preuve > details > summary,.lbody .atoi > details > summary,.lbody .exo .indice > summary{cursor:pointer;font-weight:700;color:var(--pen);padding:4px 0;width:max-content;max-width:100%}
+.lbody .preuve > details[open] > summary,.lbody .atoi > details[open] > summary{margin-bottom:8px}
+.lbody .atoi{border:2px solid var(--prof);border-radius:4px;padding:12px 16px;background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.lbody .atoi .lab{color:var(--prof)}
+.lbody .atoi p{margin:4px 0}
+.lbody .atoi code{font-family:var(--f-code);font-size:.9em;background:var(--code-bg);padding:1px 5px;border-radius:3px}
+.lbody .preuve details,.lbody .atoi details{display:block}
+.lbody .temps{scroll-margin-top:64px}
+.lbody .atelier,.lbody .sage-atelier{border:2px solid var(--prof);border-radius:4px;background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.lbody .atelier > .lab,.lbody .sage-atelier > .lab{color:var(--prof);margin:0}
+.lbody .atelier p,.lbody .sage-atelier p{margin:2px 0}
+.lbody .atelier ul,.lbody .atelier ol{margin:4px 0;padding-left:1.3em}
+
+/* --- Repris de complexite.css --- */
+.lbody .examen{border:2px dashed var(--or);border-radius:4px;background:var(--or-bg);padding:12px 16px}
+.lbody .examen .lab{color:var(--or)}
+.lbody .examen p,.lbody .examen ul,.lbody .examen ol{margin:6px 0}
+.lbody .examen ul,.lbody .examen ol{padding-left:1.3em}
+.lbody .methode{border-left:5px solid var(--pen);background:var(--pen-bg);border-radius:0 4px 4px 0;padding:12px 16px}
+.lbody .methode .lab{color:var(--pen)}
+.lbody .methode ol{margin:6px 0;padding-left:1.4em}
+.lbody .methode li{margin:4px 0}
+.lbody .pseudo{font-family:var(--f-code);background:var(--code-bg);color:var(--code-fg);border:1px solid var(--code-line);border-radius:4px;padding:10px 14px;margin:0;overflow-x:auto;font-size:.93rem;line-height:1.55;white-space:pre}
+.lbody .pseudo .num{color:var(--muted);user-select:none;display:inline-block;width:1.6em}
+.lbody table.cout td:nth-child(3),.lbody table.cout td:nth-child(4){font-variant-numeric:tabular-nums;white-space:nowrap}
+.lbody .trace td,.lbody .trace th{text-align:center}
+.lbody .anim{border:2px solid var(--pen);border-radius:4px;background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.lbody .anim > .lab{color:var(--pen);margin:0}
+.lbody .anim .an-code table{min-width:0;width:100%;font-size:.9rem}
+.lbody .anim .an-tj table{min-width:0;width:auto;font-size:.92rem}
+.lbody .mesure{border:2px solid var(--prof);border-radius:4px;background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.lbody .mesure > .lab{color:var(--prof);margin:0}
+.lbody .mesure p{margin:2px 0}
+
+/* --- Propre à la plateforme : ce que le site public n'affiche jamais --- */
+/* Les quatre temps (Comprendre, Démontrer, …) sont des sections avec un titre <h3>. */
+.lbody .temps > h3{border-bottom:2px solid var(--line);padding-bottom:4px}
+/* QCM au format 1 : réponse dans un <details>, à ouvrir après avoir répondu sur sa feuille. */
+.lbody .qcm-questions{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:14px}
+.lbody .qcm-q p{margin:0 0 4px}
+.lbody .qcm-choix{margin:4px 0 6px;padding-left:1.6em}
+.lbody .qcm-q details > summary{cursor:pointer;font-weight:700;color:var(--pen);width:max-content;max-width:100%}
+.lbody .qcm-q details[open]{border-left:3px solid var(--prof);padding-left:10px}
+/* Les composants pas encore interactifs sur la plateforme (atelier, animateur, mesure, QCM statique). */
+.lbody .statique{margin:0;font-size:.9rem;color:var(--muted);font-style:italic;border-top:1px dashed var(--line);padding-top:6px}
+.lbody .atelier details > summary,.lbody .anim details > summary{cursor:pointer;font-weight:700;color:var(--pen)}
