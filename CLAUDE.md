@@ -1,6 +1,6 @@
 # CLAUDE.md — mathnexus-plateforme
 
-À lire au début de chaque conversation. À mettre à jour à la fin de chaque session (« État », « La suite » et « Journal »).
+À lire au début de chaque conversation. À mettre à jour à la fin de chaque session (« État », « Feuille de route V1 » et « Journal »).
 
 ## But
 
@@ -158,39 +158,55 @@ par sa tâche CI `contrat`). Toute évolution du format commence **ici** : spéc
   des fragments ; `preparer_demo`, `paquet_exemple`, `e2e/evaluation.mjs`. 173 tests serveur, 29 tests Vitest.
   Preuves faites dans la session (Linux) : scénario e2e (réponses, reprise, correction 2/3, chronomètre) ; temps par
   question en base ; paquet de Complexité v0.3.0 importé ; paquet d'essai : 4 725 octets, empreinte `389c1f16…7f253f`.
+- **Étape 1 de la feuille de route faite** : `claude-md` et `m4a-evaluations` fusionnées dans `main`.
 - Conséquence voulue de la fusion : la tâche CI `contrat` du moteur échoue (copie de `paquet.py` dépassée) jusqu'à
   **M4-b** côté moteur (recopier `paquet.py`, mettre à jour le contrat, sortir les QCM au format 2, copier `src/partages/`).
 
-## La suite (Version 1)
+## Feuille de route V1 (validée par Alseny le 27/11/2026)
 
-1. [ ] **Migration de Vercel vers le serveur Docker Compose** :
+**Aucune fonctionnalité hors de cette liste sans l'accord d'Alseny.** Les étapes 1 à 5 sont le minimum pour lancer
+Cathy. La migration des parcours de Cathy et de Terminale passe avant le PDF (M5) du moteur.
+
+1. [x] **Remettre de l'ordre** : fusionner `claude-md` puis `m4a-evaluations` (CLAUDE.md combinés). *Fait le 27/11/2026.*
+2. [ ] **Contenu de Cathy** : migrer `parcours-algebre-lineaire` dans le moteur, importer le paquet.
+3. [ ] **Donner du travail** : le prof assigne à un élève ou une classe une étape, une série ou une évaluation, avec
+   date limite ; plusieurs par jour possibles.
+4. [ ] **Corriger** : l'élève répond dans l'appli (réponses saisies ou photo de copie) ; le prof corrige (note,
+   commentaires, correction rédigée) ; l'élève voit sa correction ; liste « à corriger » en tête du tableau de bord
+   prof. Correction par Alseny, l'IA plus tard.
+5. [ ] **Mise en ligne sur un serveur** (Docker Compose, sortie de Vercel) : avant l'usage réel par Cathy.
+   Ce qui est déjà noté pour cette étape :
    - comparer plusieurs fournisseurs de serveur (~4 Go) et montrer le total mensuel à Alseny avant de commander
      (budget de la V1 : environ 10 $ par mois, serveur, Bunny, domaine et sauvegardes compris) ;
    - `docker-compose.yml` a déjà `db` (PostgreSQL 16), `redis`, `api` (gunicorn) et `web` (Caddy, qui sert le front) ;
-     y ajouter le worker et le beat Celery, et rendre Redis persistant ; secrets dans `.env` sur le serveur ;
+     rendre Redis persistant ; secrets dans `.env` sur le serveur, jamais dans le dépôt ;
    - déploiement par GitHub Actions après les tests ;
    - sauvegarde quotidienne chiffrée de la base vers un stockage externe, et **un essai de restauration** ;
-   - bascule : copie de la base de production actuelle (`pg_dump` / `pg_restore`), vérification, changement de DNS,
-     puis retrait de `vercel.json`, `vercel_build.py` et du mode `SANS_SERVEUR`, et désactivation des projets Vercel
-     (avec l'accord d'Alseny).
-2. [ ] **Celery + Redis + Celery Beat** : module `systeme` (tâches, notifications, journal). Premiers usages : import
-   des paquets en tâche de fond, rappels. Redis remplace le cache en base (limitation des tentatives, cache).
-3. [~] **Évaluations enregistrées sur le serveur** : fait en M4-a (tentatives, réponses, temps par question, score,
-   correction côté serveur). Reste : tableau des résultats pour le prof (avec la fiche élève), questions à barème.
-4. [ ] **Carnet d'erreurs** : chaque question ratée y entre, avec la correction et l'étape d'origine.
-5. [ ] **Révision espacée** : planning de révision des questions du carnet, recalculé chaque nuit par Celery Beat.
-6. [ ] **Séance du jour** : préparée chaque nuit pour chaque élève (étapes ouvertes à faire, évaluation quotidienne
-   chronométrée, révisions dues).
-7. [ ] **Vidéos Bunny Stream** : envoi et suivi de l'encodage par Celery ; lecture adaptative par **jeton signé à durée
-   limitée**, délivré par l'API après vérification des droits, avec restriction de domaine ; les vidéos ne passent
-   jamais par le serveur de la plateforme ; clés Bunny dans les secrets.
+   - bascule : copie de la base de production actuelle (`pg_dump` / `pg_restore`) si elle contient des données
+     réelles, vérification, changement de DNS, puis retrait de `vercel.json`, `vercel_build.py` et du mode
+     `SANS_SERVEUR`, et désactivation des projets Vercel (avec l'accord explicite d'Alseny).
+6. [ ] **Mon espace élève** : classe privée « M1 MCS — Alseny » avec ses parcours du master (Complexité d'abord) ;
+   un seul compte, bouton « Espace prof / Espace élève ».
+7. [ ] **Classe pilote** : migrer `MathNexus-Terminale`, ouvrir la Terminale S2.
+8. [ ] **Ensuite** : séance du jour, révision espacée, carnet d'erreurs, Bunny Stream (moteur M6), Celery, bilan
+   parent, application installable hors ligne. Ce qui est déjà noté :
+   - **Celery + Redis + Celery Beat** : module `systeme` (tâches, notifications, journal) ; worker et beat ajoutés au
+     `docker-compose.yml` ; Redis remplace le cache en base (limitation des tentatives, cache) ;
+   - **carnet d'erreurs** : chaque question ratée y entre, avec la correction et l'étape d'origine ;
+   - **révision espacée** : planning des questions du carnet, recalculé chaque nuit par Celery Beat ;
+   - **séance du jour** : préparée chaque nuit pour chaque élève (étapes ouvertes, évaluation quotidienne
+     chronométrée, révisions dues) ;
+   - **Bunny Stream** : envoi et suivi de l'encodage par Celery ; lecture adaptative par **jeton signé à durée
+     limitée**, délivré par l'API après vérification des droits, avec restriction de domaine ; les vidéos ne passent
+     jamais par le serveur de la plateforme ; clés Bunny dans les secrets ;
+   - **bilan parent** préparé automatiquement, envoyé par Alseny.
 
-Aussi dans la Version 1, à placer au moment voulu :
-- [ ] double authentification **TOTP** obligatoire pour admin et prof ;
-- [ ] fiche élève et **bilan parent** préparé automatiquement, envoyé par Alseny ;
-- [ ] application installable (**PWA**) ;
-- [ ] import depuis le **moteur de contenu**, puis retrait de `outils/convertir_parcours.py` ;
-- [ ] migration de `prepa-cathy` (Supabase + Vercel) et de l'historique de Cathy avant d'arrêter l'ancienne application.
+Déjà fait et utile à la feuille de route : évaluations enregistrées sur le serveur (M4-a : tentatives, réponses,
+temps par question, score, correction côté serveur).
+
+Hors de la feuille de route (à ne pas faire sans l'accord d'Alseny) : double authentification TOTP pour admin et
+prof (prévue par le skill projet-dev) ; reprise de l'historique de `prepa-cathy` (Supabase) avant d'arrêter
+l'ancienne application ; retrait de `outils/convertir_parcours.py` une fois Cathy et Terminale migrés.
 
 Pas en Version 1 : pgvector et IA, paiement, préproduction, supervision payante.
 
@@ -216,4 +232,4 @@ Pas en Version 1 : pgvector et IA, paiement, préproduction, supervision payante
   A7 README, CLAUDE.md, PR.
 - 27/11/2026 — `claude-md` fusionnée dans `main` ; `main` fusionnée dans `m4a-evaluations` en combinant les deux
   CLAUDE.md (base M4-a, plus la stack détaillée, l'hébergement actuel, les conventions et « La suite » de
-  `claude-md`) ; PR #1 fusionnée.
+  `claude-md`) ; PR #1 fusionnée. Feuille de route V1 en 8 étapes recopiée (remplace « La suite ») ; étape 1 faite.
