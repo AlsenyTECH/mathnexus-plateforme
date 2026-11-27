@@ -1,4 +1,7 @@
 import hashlib
+import io
+import time
+import zipfile
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -108,12 +111,12 @@ def test_paquet_refuse_liste_tous_les_problemes():
 
 def test_fichier_absent_et_format_inconnu():
     m = manifeste()
-    m["format"] = 2
+    m["format"] = 3
     fichiers = {k: v for k, v in FICHIERS.items() if k != "etapes/racines.html"}
     with pytest.raises(PaquetInvalide) as e:
         lire_paquet(paquet(m, fichiers))
     texte = " | ".join(e.value.problemes)
-    assert "format 2" in texte and "absent de l'archive" in texte
+    assert "format 3" in texte and "absent de l'archive" in texte
 
 
 def test_remontee_de_dossier_refusee_meme_sous_etapes():
@@ -141,8 +144,22 @@ def test_pas_une_archive():
 def test_bombe_de_decompression_refusee():
     enorme = {"etapes/carte.html": "a" * (41 * 1024 * 1024)}
     with pytest.raises(PaquetInvalide) as e:
-        lire_paquet(construire_paquet(manifeste(), {**FICHIERS, **enorme}))
+        lire_paquet(construire_paquet(manifeste(), {**FICHIERS, **enorme}, compresser=True))
     assert "décompressée" in e.value.problemes[0]
+
+
+def test_construire_paquet_reproductible():
+    """Deux constructions du même contenu donnent la même archive, donc la même empreinte."""
+    premier = construire_paquet(manifeste(), FICHIERS)
+    time.sleep(2.1)  # l'horloge change de seconde paire : une date « maintenant » se verrait
+    second = construire_paquet(manifeste(), dict(reversed(list(FICHIERS.items()))))
+    assert premier == second
+    assert lire_paquet(premier).empreinte == lire_paquet(second).empreinte
+    with zipfile.ZipFile(io.BytesIO(premier)) as z:
+        infos = z.infolist()
+    assert infos[0].filename == "manifeste.json"
+    assert [i.filename for i in infos[1:]] == sorted(i.filename for i in infos[1:])
+    assert {i.date_time for i in infos} == {(1980, 1, 1, 0, 0, 0)}
 
 
 # --- Import, versions, publication -------------------------------------------------------

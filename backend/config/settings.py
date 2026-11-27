@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "organisations",
     "contenus",
     "progression",
+    "evaluations",
 ]
 
 MIDDLEWARE = [

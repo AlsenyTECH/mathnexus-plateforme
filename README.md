@@ -6,7 +6,7 @@ ensuite SANGEL (organisations, groupes, rôles, offres, paiement, médias, progr
 
 Plan complet : document « Plateforme Mathnexus — Plan complet ».
 
-## État : phase 1 — comptes et classes, contenus et progression, application React
+## État : phase 1 terminée, phase 2 commencée (évaluations enregistrées sur le serveur)
 
 | Fait | Détail |
 | --- | --- |
@@ -17,17 +17,18 @@ Plan complet : document « Plateforme Mathnexus — Plan complet ».
 | Classes | Organisations, années scolaires, groupes avec code d'inscription lisible et régénérable, rôles élève / prof par groupe |
 | Redirection | Admin, compte en attente, mot de passe à changer, prof, une classe, plusieurs classes (dernier choix retenu), aucune classe |
 | Sécurité | Sessions par cookie HttpOnly + CSRF, limitation des tentatives (5 connexions par minute), deux appareils au plus par compte, périmètre vérifié côté serveur (404 hors périmètre), journal d'audit, réglages durcis hors DEBUG |
-| Contenus | Paquets de parcours (manifeste + fragments HTML) validés à l'import : aucun script, gestionnaire d'événement ou URL `javascript:` ne passe ([format](backend/contenus/FORMAT_PAQUET.md)) ; import par l'admin ou par clé de déploiement ; versions en brouillon, aperçu, publication |
+| Contenus | Paquets de parcours (manifeste + fragments HTML) validés à l'import : aucun script, gestionnaire d'événement ou URL `javascript:` ne passe ([format](backend/contenus/FORMAT_PAQUET.md), formats 1 et 2) ; import par l'admin ou par clé de déploiement ; versions en brouillon, aperçu, publication ; paquets reproductibles (même contenu → même empreinte) |
+| Évaluations | Format 2 : évaluations en données (choix unique ou multiple, points, seuil, durée, explications). Bonnes réponses gardées sur le serveur jusqu'à la fin de la tentative ; score et échéance calculés par le serveur ; temps par question mesuré par le navigateur (onglet visible) et plafonné par le serveur ; tentatives illimitées, reprise après rechargement ; résultats et temps dans l'admin Django |
 | Partage | Un parcours rattaché à plusieurs classes ; ouverture de toutes les étapes, ou progressive par le prof ; niveaux d'accès public, inscrit, premium ; vitrine publique sans compte |
 | Progression | Étapes ouvertes et validées par élève, accrochées aux clés stables : rien n'est perdu quand une nouvelle version est publiée ; tableau de progression du prof |
 | Conversion | `outils/convertir_parcours.py` transforme un parcours « cahier » actuel en paquet ; testé sur Nombres complexes et Étude de fonction |
-| Tests | 83 tests + 1 pour l'outil, passés sur SQLite et PostgreSQL 16 ; chaque règle d'accès cassée volontairement fait échouer au moins un test |
+| Tests | 173 tests + 1 pour l'outil, passés sur SQLite et PostgreSQL 16 ; chaque règle d'accès cassée volontairement fait échouer au moins un test |
 
 | Application | React + TypeScript (Vite) : connexion, inscription avec code de classe, attente, redirection ; tableau de bord de classe, sommaire, lecteur d'étape au style cahier (formules KaTeX, graphiques interactifs et évaluations chronométrées repris des parcours d'origine) ; espace prof (progression, ouverture des étapes) ; admin (comptes en attente, classes et codes, import de listes, contenus et publication) |
-| Front | Pages prof, admin et lecteur chargées à la demande (88 Ko compressés pour entrer) ; contenu nettoyé par DOMPurify en plus du contrôle serveur ; 14 tests Vitest |
-| Bout en bout | `frontend/e2e/scenario.mjs` déroule dans Chrome le parcours complet élève → admin → prof sur les vrais parcours, y compris sur la version de production avec la CSP de Caddy |
+| Front | Pages prof, admin et lecteur chargées à la demande (88 Ko compressés pour entrer) ; contenu nettoyé par DOMPurify en plus du contrôle serveur ; composant évaluation partagé avec le moteur (`src/partages/`) ; style des blocs du moteur (`style/blocs.css`) ; 29 tests Vitest |
+| Bout en bout | `frontend/e2e/scenario.mjs` déroule dans Chrome le parcours complet élève → admin → prof sur les vrais parcours, y compris sur la version de production avec la CSP de Caddy ; `frontend/e2e/evaluation.mjs` passe une évaluation (reprise, correction, chronomètre) |
 
-À venir : phase 2 (évaluations enregistrées sur le serveur, vidéos protégées, application installable hors ligne).
+À venir (phase 2) : séance du jour, révision espacée et carnet d'erreurs, tableau des résultats pour le prof, vidéos protégées, application installable hors ligne.
 
 ## Démarrer en local
 
@@ -43,6 +44,16 @@ python -m pytest                      # les tests
 ```
 
 Administration Django : http://localhost:8000/gestion/ (créer l'organisation, l'année et les classes).
+Le numéro se tape avec ou sans `+221` (`775148833` suffit).
+
+Essayer les évaluations en local (développement seulement) :
+
+```bash
+python manage.py preparer_demo        # classe « Démo évaluations », parcours d'essai, un élève (mot de passe affiché)
+python manage.py paquet_exemple /tmp/exemple-format2.zip   # le paquet d'essai au format 2, seul
+```
+
+Sous Windows (invite de commandes) : `py -m venv .venv`, `.venv\Scripts\activate`, `set DJANGO_DEBUG=1`.
 
 L'application (dans un second terminal) :
 
@@ -88,6 +99,11 @@ l'en-tête `X-CSRFToken` sur chaque requête qui modifie quelque chose.
 | `POST groupes/<id>/parcours/<slug>/ouverture/` | prof du groupe, admin | Ouvrir (ou refermer avec `"ouvrir": false`) des étapes |
 | `GET groupes/<id>/parcours/<slug>/progression/` | prof du groupe, admin | Tableau élèves × étapes validées |
 | `GET public/parcours/<slug>/etapes/<cle>/` | public | Étapes de vitrine |
+| `GET groupes/<id>/parcours/<slug>/evaluations/<cle>/` | qui lit l'étape | Présentation (sans les questions) et ses tentatives |
+| `POST groupes/<id>/parcours/<slug>/evaluations/<cle>/tentatives/` | qui lit l'étape | Commencer, ou reprendre la tentative en cours |
+| `GET tentatives/<id>/` | l'auteur | Reprendre, ou relire la correction (seulement une fois terminée) |
+| `PUT tentatives/<id>/reponses/<question>/` | l'auteur | `{choix, temps_ms}` ; 409 après la fin ou l'échéance |
+| `POST tentatives/<id>/terminer/` | l'auteur | `{temps}` ; renvoie la correction |
 | `POST admin/contenus/import/` | admin, clé de déploiement | Importer un paquet (champ `paquet`) |
 | `GET admin/contenus/parcours/` | admin | Catalogue et versions |
 | `GET admin/contenus/versions/<id>/`, `.../etapes/<cle>/` | admin | Aperçu d'une version, brouillon compris |
@@ -106,11 +122,14 @@ backend/
   organisations/   Organisation, AnneeScolaire, Groupe, Inscription ; acces.py = le périmètre de chaque compte
   contenus/        Parcours, versions, parties, étapes, rattachements ; paquet.py = validation des paquets
   progression/     Progression par élève et par étape
+  evaluations/     Évaluations et questions (format 2), tentatives et réponses ; tentatives.py = les règles
 frontend/
   src/api/         client (cookie de session + jeton CSRF) et types des réponses
   src/pages/       Entree (connexion, inscription…), Eleve, Prof, Admin
-  src/lecteur/     rendu d'une étape : KaTeX, moteurs de graphiques, évaluations, DOMPurify
-  src/style/       cahier.css, repris des parcours d'origine
+  src/lecteur/     rendu d'une étape : KaTeX, moteurs de graphiques, évaluations à barème, DOMPurify ;
+                   composants.ts = registre data-composant → monter(), services branchés sur l'API
+  src/partages/    composants partagés avec le moteur (copie surveillée) : JavaScript sans dépendance
+  src/style/       cahier.css, repris des parcours d'origine ; blocs.css, les blocs des fragments du moteur
   e2e/scenario.mjs scénario de bout en bout dans Chrome
   Caddyfile        service de l'application et relais vers l'API, en-têtes de sécurité
 outils/

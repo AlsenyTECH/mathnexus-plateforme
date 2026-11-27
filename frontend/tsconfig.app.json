@@ -16,6 +16,10 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Composants partagés avec le moteur (src/partages) : JavaScript typé par JSDoc */
+    "allowJs": true,
+    "checkJs": true,
+
     /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,

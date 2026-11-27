@@ -3,6 +3,7 @@ from django.urls import include, path
 
 from comptes import vues as c
 from contenus import vues as ct
+from evaluations import vues as ev
 from organisations import vues as o
 from progression import vues as pr
 
@@ -28,6 +29,12 @@ api = [
     path("groupes/<uuid:pk>/parcours/<slug:slug>/etapes/<slug:cle>/valider/", pr.ValiderEtape.as_view()),
     path("groupes/<uuid:pk>/parcours/<slug:slug>/ouverture/", ct.OuvrirEtapes.as_view()),
     path("groupes/<uuid:pk>/parcours/<slug:slug>/progression/", pr.ProgressionDuGroupe.as_view()),
+    # Évaluations (format 2) : les réponses restent sur le serveur jusqu'à la fin de la tentative
+    path("groupes/<uuid:pk>/parcours/<slug:slug>/evaluations/<slug:cle>/", ev.DetailEvaluation.as_view()),
+    path("groupes/<uuid:pk>/parcours/<slug:slug>/evaluations/<slug:cle>/tentatives/", ev.CommencerTentative.as_view()),
+    path("tentatives/<uuid:tentative_id>/", ev.DetailTentative.as_view()),
+    path("tentatives/<uuid:tentative_id>/reponses/<slug:cle>/", ev.Repondre.as_view()),
+    path("tentatives/<uuid:tentative_id>/terminer/", ev.Terminer.as_view()),
     # Vitrine publique
     path("public/parcours/<slug:slug>/etapes/<slug:cle>/", ct.EtapePublique.as_view()),
     # Administration
