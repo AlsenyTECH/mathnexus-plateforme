@@ -3,6 +3,8 @@
 - crée l'organisation et l'année scolaire en cours si aucune n'existe ;
 - crée le compte admin si aucun n'existe, avec un mot de passe provisoire à changer
   à la première connexion (ADMIN_TELEPHONE, ADMIN_PRENOM, ADMIN_NOM, ADMIN_MOT_DE_PASSE_PROVISOIRE) ;
+- tant que cet admin n'a jamais choisi son mot de passe, lui redonne le mot de passe provisoire actuel
+  (pour s'en sortir si on l'a oublié : changer la variable, puis redéployer) ;
 - importe les paquets de contenus_initiaux/ qui ne le sont pas encore, et publie un parcours
   qui n'a pas encore de version publiée.
 """
@@ -14,6 +16,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from comptes.models import Utilisateur
+from comptes.telephone import normaliser_telephone
 from contenus.importation import PaquetDejaImporte, importer_paquet
 from contenus.models import VersionParcours
 from contenus.paquet import PaquetInvalide
@@ -55,6 +58,12 @@ class Command(BaseCommand):
                 self.stdout.write(f"Compte admin {admin.telephone} créé (mot de passe à changer à la première connexion).")
             else:
                 self.stdout.write("Aucun admin : définir ADMIN_TELEPHONE et ADMIN_MOT_DE_PASSE_PROVISOIRE.")
+        elif telephone and mdp:
+            admin = Utilisateur.objects.filter(is_superuser=True, telephone=normaliser_telephone(telephone)).first()
+            if admin and admin.doit_changer_mot_de_passe and not admin.check_password(mdp):
+                admin.set_password(mdp)
+                admin.save(update_fields=["password"])
+                self.stdout.write(f"Mot de passe provisoire de {admin.telephone} remis à jour (jamais changé).")
 
         for chemin in sorted(DOSSIER_PAQUETS.glob("*.zip")):
             try:

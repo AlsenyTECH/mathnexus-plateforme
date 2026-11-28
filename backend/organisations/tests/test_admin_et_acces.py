@@ -267,3 +267,27 @@ def test_annee_scolaire_commence_en_octobre():
     assert annee_en_cours(datetime.date(2026, 11, 25))[0] == "2026-2027"
     assert annee_en_cours(datetime.date(2027, 3, 1))[0] == "2026-2027"
     assert annee_en_cours(datetime.date(2027, 10, 2))[0] == "2027-2028"
+
+
+def test_mot_de_passe_provisoire_oublie_se_remet_tant_qu_il_n_a_pas_ete_change(db, monkeypatch):
+    """Changer la variable puis redéployer redonne l'accès, mais jamais une fois le mot de passe choisi."""
+    from django.core.management import call_command
+
+    from comptes.models import Utilisateur as U
+
+    monkeypatch.setenv("ADMIN_TELEPHONE", "771000000")
+    monkeypatch.setenv("ADMIN_MOT_DE_PASSE_PROVISOIRE", "Premier-provisoire-2026")
+    call_command("initialiser_plateforme")
+    monkeypatch.setenv("ADMIN_MOT_DE_PASSE_PROVISOIRE", "Second-provisoire-2026")
+    call_command("initialiser_plateforme")
+    admin = U.objects.get(is_superuser=True)
+    assert admin.check_password("Second-provisoire-2026")
+
+    # Une fois son propre mot de passe choisi, la variable ne compte plus.
+    admin.set_password("Mon-vrai-mot-de-passe-2026")
+    admin.doit_changer_mot_de_passe = False
+    admin.save()
+    monkeypatch.setenv("ADMIN_MOT_DE_PASSE_PROVISOIRE", "Troisieme-provisoire-2026")
+    call_command("initialiser_plateforme")
+    admin.refresh_from_db()
+    assert admin.check_password("Mon-vrai-mot-de-passe-2026")
