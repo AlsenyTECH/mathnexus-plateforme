@@ -161,11 +161,13 @@ class SeanceDuJour(APIView):
 
         regles_carnet.synchroniser(request.user)
         dues = regles_carnet.a_revoir(request.user, groupe, maintenant)
+        # Deux parcours au plus : ceux en cours ; si aucun n'est commencé, le premier seulement.
+        nombre_etapes = 2 if any(e["derniere_ouverture"] for e in etapes) else 1
         return Response({
             "date": timezone.localdate(),
             "devoirs": devoirs,
-            "etapes": etapes[:3],
-            "autres_parcours": max(0, len(etapes) - 3),
+            "etapes": etapes[:nombre_etapes],
+            "autres_parcours": max(0, len(etapes) - nombre_etapes),
             "revisions": dues.count(),
         })
 
@@ -227,7 +229,8 @@ def _bilan(groupe, eleve, jours, maintenant):
 
     lignes = [
         f"Bonjour, voici le bilan des {jours} derniers jours de {eleve.prenom} ({groupe.nom}) :",
-        f"• Travaux : {len(faits)} faits sur {len(etats)} donnés" + (f", {len(retards)} en retard" if retards else "") + ".",
+        f"• Travaux : {len(faits)} fait{'s' if len(faits) > 1 else ''} sur {len(etats)} donné{'s' if len(etats) > 1 else ''}"
+        + (f", {len(retards)} en retard" if retards else "") + ".",
     ]
     if notes:
         moyenne = sum(n for _, n in notes) / len(notes)

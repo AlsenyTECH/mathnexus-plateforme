@@ -42,3 +42,26 @@ export async function compresserImage(fichier: File, cote = 1600, qualite = 0.82
     return fichier
   }
 }
+
+/**
+ * Un lien WhatsApp avec un message déjà écrit. Sans numéro, WhatsApp demande à qui l'envoyer
+ * (un groupe de classe, par exemple). Le numéro est pris au format international, sans « + ».
+ */
+export function lienWhatsApp(texte: string, telephone?: string | null): string {
+  const numero = (telephone ?? '').replace(/\D/g, '')
+  return `https://wa.me/${numero}?text=${encodeURIComponent(texte)}`
+}
+
+/** L'adresse complète d'une page de l'application (pour la mettre dans un message). */
+export function adresse(chemin: string): string {
+  return `${window.location.origin}${chemin}`
+}
+
+/** « il y a 3 j », « aujourd'hui »… pour une dernière activité. */
+export function depuis(iso: string | null): string {
+  if (!iso) return 'jamais'
+  const jours = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+  if (jours <= 0) return "aujourd'hui"
+  if (jours === 1) return 'hier'
+  return `il y a ${jours} j`
+}

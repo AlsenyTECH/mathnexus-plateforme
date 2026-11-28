@@ -171,6 +171,19 @@ par sa tâche CI `contrat`). Toute évolution du format commence **ici** : spéc
   - Preuve : `frontend/e2e/devoirs.mjs` passé de bout en bout (donner → rendre avec photo → corriger → lire).
   - Limite connue : les QCM et autocorrections écrits en JavaScript dans les pages physique et Fondements
     s'affichent sans correction automatique (à porter au format 2 par le moteur).
+- **V1 terminée (branche `v1-fin`, 28/11/2026)**, telle que décidée dans « ma proposition » :
+  - **séance du jour** en tête de la classe de l'élève (devoirs dus, révisions du carnet, étapes suivantes) ;
+  - **évaluations du jour chronométrées** : devoir avec `duree_min`, sujet caché jusqu'à « Commencer », chronomètre,
+    rendu hors temps signalé ; **sujet joint** en photo ou PDF ; formules KaTeX dans les consignes et les copies ;
+  - **carnet d'erreurs** (`evaluations.EntreeCarnet`) : questions ratées des évaluations format 2, révisions à
+    1, 3, 7 jours, maîtrisée après 3 réussites ; synchronisé à la lecture (pas de tâche planifiée sur Vercel) ;
+  - **suivi** (app `suivi`, rien de stocké) : tableau de classe, fiche élève, **bilan parent** prêt pour WhatsApp ;
+  - **correction rapide** : stylo sur la photo de la copie, commentaires réutilisables, « copie suivante » ;
+  - **WhatsApp en un clic** (annonce d'un devoir, bilan au parent, mot de passe à l'élève) ;
+  - **mot de passe oublié** : l'admin donne un mot de passe provisoire depuis la fiche élève ;
+  - QCM d'auto-vérification et onglets des pages Fondements / Réseau & Sécurité de nouveau interactifs.
+  - Preuves : 15 tests serveur (`suivi/tests`), 34 Vitest, `e2e/v1.mjs` passé de bout en bout.
+  - Hors V1 réalisée : la mise en ligne sur un serveur (étape 5) attend qu'Alseny commande le serveur.
 - **Étape 1 de la feuille de route faite** : `claude-md` et `m4a-evaluations` fusionnées dans `main`.
 - Conséquence voulue de la fusion : la tâche CI `contrat` du moteur échoue (copie de `paquet.py` dépassée) jusqu'à
   **M4-b** côté moteur (recopier `paquet.py`, mettre à jour le contrat, sortir les QCM au format 2, copier `src/partages/`).
@@ -250,3 +263,8 @@ Pas en Version 1 : pgvector et IA, paiement, préproduction, supervision payante
   de l'API réparé (dépendances dans `pyproject.toml`), 14 paquets préchargés, `preparer_pilote`, module `devoirs`
   (API + pages), espaces prof/élève, page Contenus clarifiée. Il reste à brancher une base PostgreSQL (Neon) au projet
   Vercel de l'API ; le serveur Docker Compose (étape 5) reste à faire.
+- 28/11/2026 — Connexion en production réparée (relais `/api` du front, adresse `mathnexus-nine.vercel.app`,
+  mot de passe provisoire remis au déploiement tant qu'il n'a pas été changé). Proposition « apprendre, enseigner,
+  partager » rangée dans les trois versions décidées (V1 pilote, V2 tes classes, V3 l'ouverture). Puis **V1 finie**
+  (branche `v1-fin`) : séance du jour, évaluations chronométrées, carnet d'erreurs, suivi, bilan parent, correction
+  rapide, WhatsApp, mot de passe oublié. Prochaine étape : le serveur (étape 5), puis la V2.
