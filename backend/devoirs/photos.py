@@ -30,3 +30,20 @@ def verifier(fichier):
     if mime is None:
         raise ValueError("Seules les photos JPEG, PNG ou WebP sont acceptées.")
     return donnees, mime
+
+
+TAILLE_MAX_SUJET = 5 * 1024 * 1024
+NOMBRE_MAX_SUJET = 6
+
+
+def verifier_sujet(fichier):
+    """Un sujet : photo (JPEG, PNG, WebP) ou PDF, 5 Mo au plus."""
+    if fichier is None:
+        raise ValueError("Aucun fichier reçu.")
+    if fichier.size > TAILLE_MAX_SUJET:
+        raise ValueError("Fichier trop lourd (au plus 5 Mo).")
+    donnees = fichier.read()
+    mime = type_image(donnees) or ("application/pdf" if donnees.startswith(b"%PDF-") else None)
+    if mime is None:
+        raise ValueError("Seuls les PDF et les photos JPEG, PNG ou WebP sont acceptés.")
+    return donnees, mime

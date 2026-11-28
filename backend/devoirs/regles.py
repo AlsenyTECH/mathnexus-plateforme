@@ -4,6 +4,8 @@ Comme ailleurs dans la plateforme, tout part de organisations.acces : un prof ne
 devoirs des classes où il enseigne, un élève que ceux de ses classes (et seulement ceux qui lui
 sont destinés). Hors périmètre : 404.
 """
+from datetime import timedelta
+
 from django.db.models import Q
 from django.utils import timezone
 
@@ -95,8 +97,13 @@ def etat(devoir, eleve, rendu=None, maintenant=None):
         statut = "en_retard"
     else:
         statut = "a_faire"
+    commence_le = rendu.commence_le if rendu else None
+    fin_prevue = commence_le + timedelta(minutes=devoir.duree_min) if commence_le and devoir.duree_min else None
     return {
         "statut": statut,
+        "commence_le": commence_le,
+        "fin_prevue": fin_prevue,
+        "hors_temps": bool(fin_prevue and rendu.rendu_le and rendu.rendu_le > fin_prevue + timedelta(minutes=2)),
         "rendu_le": rendu.rendu_le if rendu else None,
         "note": nombre(rendu.note) if rendu else None,
         "corrige_le": rendu.corrige_le if rendu else None,
@@ -104,3 +111,13 @@ def etat(devoir, eleve, rendu=None, maintenant=None):
         "total": nombre(tentative.total) if tentative else None,
         "tentative_terminee_le": tentative.terminee_le if tentative else None,
     }
+
+
+def sujet_visible(devoir, rendu, maintenant=None):
+    """Le sujet d'un devoir chronométré reste caché à l'élève tant qu'il n'a pas cliqué sur « Commencer »
+    (sauf après la date limite ou une fois sa copie corrigée)."""
+    if not devoir.duree_min:
+        return True
+    if rendu is not None and (rendu.commence_le or rendu.corrige_le):
+        return True
+    return devoir.en_retard(maintenant or timezone.now())

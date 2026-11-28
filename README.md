@@ -119,6 +119,17 @@ l'en-tête `X-CSRFToken` sur chaque requête qui modifie quelque chose.
 | `POST devoirs/<id>/eleves/<eleve>/photos/` | prof | Photo de correction (visible par l'élève une fois rendue) |
 | `GET a-corriger/` | prof, admin | Toutes les copies rendues pas encore corrigées |
 | `GET/DELETE photos/<id>/` | auteur, prof | Une photo |
+| `POST devoirs/<id>/commencer/` | élève concerné | Devoir chronométré (`duree_min`) : lance le chronomètre, le sujet apparaît |
+| `POST devoirs/<id>/sujet/` | prof | Joindre le sujet (champ `fichier` : photo ou PDF, 5 Mo, 6 au plus) |
+| `GET/DELETE pieces/<id>/` | prof ; élève concerné une fois le sujet découvert | Une pièce jointe du sujet |
+| `GET mes-commentaires/` | prof | Ses commentaires de correction les plus fréquents |
+| `GET carnet/?groupe=<id>` | élève | Son carnet d'erreurs (sans les bonnes réponses) |
+| `POST carnet/<id>/repondre/` | élève | `{choix}` ; renvoie la correction ; révisions à 1, 3, 7 jours, maîtrisée après 3 réussites |
+| `GET groupes/<id>/seance/` | élève de la classe | Séance du jour : devoirs, étapes suivantes, révisions dues |
+| `GET groupes/<id>/suivi/` | prof de la classe, admin | Tableau de classe : une ligne par élève |
+| `GET groupes/<id>/eleves/<eleve>/` | prof de la classe, admin | Fiche élève : travaux, évaluations, progression, contacts |
+| `GET groupes/<id>/eleves/<eleve>/bilan/?jours=7` | prof de la classe, admin | Bilan pour le parent, prêt à envoyer |
+| `POST admin/comptes/<id>/reinitialiser-mot-de-passe/` | admin | Nouveau mot de passe provisoire (affiché une fois), appareils déconnectés |
 
 Valeurs de `destination` : `admin`, `attente`, `changer_mot_de_passe`, `prof`,
 `groupe` (avec `groupe`), `choix_groupe` (avec `groupes`), `aucun_groupe`.
@@ -133,7 +144,8 @@ backend/
   contenus/        Parcours, versions, parties, étapes, rattachements ; paquet.py = validation des paquets
   progression/     Progression par élève et par étape
   evaluations/     Évaluations et questions (format 2), tentatives et réponses ; tentatives.py = les règles
-  devoirs/         Devoirs, rendus (copie texte + photos), corrections ; regles.py = qui voit quoi, statuts
+  devoirs/         Devoirs (chronométrés ou non, sujet joint), rendus (texte + photos), corrections ; regles.py = qui voit quoi
+  suivi/           Séance du jour, tableau de classe, fiche élève, bilan parent (calculés, rien de stocké)
 frontend/
   src/api/         client (cookie de session + jeton CSRF) et types des réponses
   src/pages/       Entree (connexion, inscription…), Eleve, Prof, Admin

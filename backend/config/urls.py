@@ -7,6 +7,7 @@ from devoirs import vues as dv
 from evaluations import vues as ev
 from organisations import vues as o
 from progression import vues as pr
+from suivi import vues as sv
 
 api = [
     # Session
@@ -47,6 +48,17 @@ api = [
     path("mes-devoirs/", dv.MesDevoirs.as_view()),
     path("a-corriger/", dv.ACorriger.as_view()),
     path("photos/<uuid:pk>/", dv.DetailPhoto.as_view()),
+    path("devoirs/<uuid:pk>/commencer/", dv.CommencerDevoir.as_view()),
+    path("devoirs/<uuid:pk>/sujet/", dv.SujetDuDevoir.as_view()),
+    path("pieces/<uuid:pk>/", dv.DetailPiece.as_view()),
+    path("mes-commentaires/", dv.MesCommentaires.as_view()),
+    # Carnet d'erreurs, séance du jour, suivi
+    path("carnet/", ev.Carnet.as_view()),
+    path("carnet/<uuid:pk>/repondre/", ev.RepondreCarnet.as_view()),
+    path("groupes/<uuid:pk>/seance/", sv.SeanceDuJour.as_view()),
+    path("groupes/<uuid:pk>/suivi/", sv.TableauDeClasse.as_view()),
+    path("groupes/<uuid:pk>/eleves/<uuid:eleve_id>/", sv.FicheEleve.as_view()),
+    path("groupes/<uuid:pk>/eleves/<uuid:eleve_id>/bilan/", sv.BilanParent.as_view()),
     # Vitrine publique
     path("public/parcours/<slug:slug>/etapes/<slug:cle>/", ct.EtapePublique.as_view()),
     # Administration
@@ -55,6 +67,7 @@ api = [
     path("admin/comptes/<uuid:pk>/refuser/", c.RefuserCompte.as_view()),
     path("admin/comptes/<uuid:pk>/suspendre/", c.SuspendreCompte.as_view()),
     path("admin/comptes/<uuid:pk>/reactiver/", c.ReactiverCompte.as_view()),
+    path("admin/comptes/<uuid:pk>/reinitialiser-mot-de-passe/", c.ReinitialiserMotDePasse.as_view()),
     path("admin/referentiel/", o.Referentiel.as_view()),
     path("admin/groupes/", o.GroupesAdmin.as_view()),
     path("admin/groupes/<uuid:pk>/", o.GroupeAdmin.as_view()),

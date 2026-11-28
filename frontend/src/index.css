@@ -116,3 +116,51 @@ input:focus, select:focus, textarea:focus { border-color: var(--pen); outline: n
 .correction { border-color: var(--prof); }
 .succes { color: var(--prof); background: var(--prof-bg); border-radius: 4px; padding: 8px 12px; margin: 10px 0; }
 .a-corriger { border-color: var(--pen); }
+
+/* --- Séance du jour, carnet, suivi, correction rapide ----------------------------------------- */
+.seance { background: var(--surface); border: 2px solid var(--pen); border-radius: 8px; padding: 14px 18px; margin: 0 0 22px; }
+.seance h2 { margin-top: 0; text-transform: none; }
+.seance-liste { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 8px; }
+.seance-liste a { display: grid; gap: 2px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 6px; text-decoration: none; color: inherit; background: var(--paper); }
+.seance-liste a:hover { border-color: var(--pen); }
+.seance-liste li.retard a { border-color: var(--rouge); background: var(--rouge-bg); }
+.seance-type { font-size: .74rem; letter-spacing: .07em; text-transform: uppercase; font-weight: 700; color: var(--pen); }
+.carnet-question { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 18px; margin: 10px 0 16px; }
+.choix-carnet { list-style: none; padding: 0; display: grid; gap: 8px; margin: 12px 0; }
+.choix-carnet .choix { width: 100%; text-align: left; font: inherit; color: inherit; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+.choix-carnet .choix.choisi { border-color: var(--pen); background: var(--pen-bg); }
+.choix-carnet .choix.juste { border-color: var(--prof); background: var(--prof-bg); }
+.choix-carnet .choix.faux { border-color: var(--rouge); background: var(--rouge-bg); }
+.choix-carnet .choix p { margin: 0; }
+.verdict { border-left: 4px solid var(--pen); padding: 8px 12px; margin-top: 10px; background: var(--paper); }
+.verdict.ok { border-color: var(--prof); }
+.verdict.ko { border-color: var(--rouge); }
+.tableau-suivi td.alerte, .chiffres .alerte strong { color: var(--rouge); font-weight: 700; }
+.chiffres { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 6px 0 16px; }
+.chiffres > div { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: grid; }
+.chiffres strong { font-size: 1.3rem; }
+.chiffres span { font-size: .8rem; color: var(--muted); }
+.contacts { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn.whatsapp, .btn.ghost.whatsapp { border-color: #1fa855; color: #128c45; }
+.btn.whatsapp:not(.ghost) { background: #1fa855; color: #fff; }
+.ligne-avec-action { display: flex; gap: 8px; align-items: stretch; }
+.ligne-avec-action .ligne-devoir { flex: 1; }
+.ligne-avec-action > .btn { align-self: center; }
+.bilan textarea { font-family: inherit; }
+.mdp { font-family: ui-monospace, monospace; font-size: 1.1rem; letter-spacing: .05em; }
+.chronometre { position: sticky; top: 64px; z-index: 5; background: var(--pen); color: #fff; font-weight: 700; padding: 8px 14px; border-radius: 6px; margin: 8px 0; }
+.chronometre.presque { background: var(--rouge); }
+.commencer { border-color: var(--pen); }
+.pieces { list-style: none; padding: 0; display: grid; gap: 10px; margin: 10px 0; }
+.pieces img { max-width: 100%; border: 1px solid var(--line); border-radius: 4px; }
+.banque-commentaires { display: flex; flex-wrap: wrap; gap: 6px; }
+.puce { font: inherit; font-size: .85rem; background: var(--pen-bg); color: var(--pen); border: 1px solid var(--pen); border-radius: 999px; padding: 3px 10px; cursor: pointer; text-align: left; }
+.copie-suivante { margin-left: 8px; }
+.annotation { position: fixed; inset: 0; z-index: 50; background: rgba(10, 14, 30, .92); display: flex; flex-direction: column; padding: 10px; gap: 8px; }
+.annotation-barre { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.annotation-barre .espace { flex: 1; }
+.annotation-barre .btn.ghost { color: #fff; border-color: #fff; }
+.annotation .discret, .annotation .erreur { color: #fff; }
+.pastille { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; }
+.pastille.active { outline: 3px solid #ffd23f; }
+.annotation-toile { flex: 1; min-height: 0; max-width: 100%; max-height: 100%; object-fit: contain; margin: 0 auto; touch-action: none; background: #fff; cursor: crosshair; }

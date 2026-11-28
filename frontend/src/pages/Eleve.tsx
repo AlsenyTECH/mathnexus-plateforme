@@ -7,6 +7,7 @@ import { Contenu } from '../lecteur/Contenu'
 import { useSession } from '../session'
 import { etapeAReprendre, numeroterEtapes } from '../utilitaires'
 import { MesDevoirs } from './Devoirs'
+import { SeanceDuJour } from './Suivi'
 
 const RAISONS: Record<string, string> = {
   premium: 'Offre Premium',
@@ -21,6 +22,7 @@ export function TableauDeBordClasse() {
     <Cadre titre={g.donnees ? `${g.donnees.nom} · ${g.donnees.annee_libelle}` : undefined}>
       {(g.chargement || parcours.chargement) && <Chargement />}
       <MessageErreur erreur={g.erreur ?? parcours.erreur} />
+      <SeanceDuJour groupe={groupe} />
       <MesDevoirs groupe={groupe} />
       <h2>Mes parcours</h2>
       {parcours.donnees?.length === 0 && <p className="encart">Aucun parcours n'est encore ouvert dans ta classe.</p>}

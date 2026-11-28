@@ -14,7 +14,12 @@ function transformerControles(racine: HTMLElement): void {
     const bouton = document.createElement('button')
     bouton.type = 'button'
     bouton.className = span.className
-    bouton.textContent = span.textContent
+    // Les attributs utiles aux onglets et aux QCM (data-t, aria-selected…) sont gardés.
+    for (const { name, value } of Array.from(span.attributes)) {
+      if ((name.startsWith('data-') && name !== 'data-composant') || name.startsWith('aria-')) bouton.setAttribute(name, value)
+    }
+    if (span.getAttribute('role') === 'tab' || span.matches('.onglet')) bouton.setAttribute('role', 'tab')
+    bouton.innerHTML = span.innerHTML
     span.replaceWith(bouton)
   })
   racine.querySelectorAll<HTMLElement>('[data-composant="case"]').forEach((span) => {

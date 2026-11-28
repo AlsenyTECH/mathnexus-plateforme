@@ -102,3 +102,30 @@
 /* Les composants pas encore interactifs sur la plateforme (atelier, animateur, mesure, QCM statique). */
 .lbody .statique{margin:0;font-size:.9rem;color:var(--muted);font-style:italic;border-top:1px dashed var(--line);padding-top:6px}
 .lbody .atelier details > summary,.lbody .anim details > summary{cursor:pointer;font-weight:700;color:var(--pen)}
+/* QCM d'auto-vérification (Fondements, Réseau & Sécurité) et onglets des quatre temps */
+.lbody .qcm-o{display:flex;gap:8px;align-items:baseline;padding:4px 8px;border-radius:4px;cursor:pointer}
+.lbody .qcm-o.juste{background:var(--prof-bg);color:var(--prof);font-weight:600}
+.lbody .qcm-o.faux{background:var(--rouge-bg);color:var(--rouge);text-decoration:line-through}
+.lbody .qcm-x{margin:4px 0 0;padding:6px 10px;border-left:3px solid var(--prof);background:var(--surface)}
+.lbody .qcm-bas{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.lbody .qcm-res{margin:0;font-weight:600}
+.lbody .qcm-res.ok{color:var(--prof)}
+.lbody .qcm-res.ko{color:var(--rouge)}
+.lbody .qcm[data-answer]{gap:8px}
+.lbody .qcm-n{margin:0;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--pen);font-weight:700}
+.lbody button.opt{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:8px 12px;cursor:pointer}
+.lbody button.opt:hover:not(:disabled){border-color:var(--pen)}
+.lbody button.opt:disabled{cursor:default}
+.lbody button.opt.good{background:var(--prof-bg);border-color:var(--prof);color:var(--prof);font-weight:600}
+.lbody button.opt.bad{background:var(--rouge-bg);border-color:var(--rouge);color:var(--rouge)}
+.lbody .qcm-exp{display:none;margin-top:4px;padding:8px 12px;border-left:3px solid var(--pen);background:var(--pen-bg)}
+.lbody .qcm-exp.on{display:block}
+.lbody .qcm-score{display:none;font-weight:700;color:var(--pen)}
+.lbody .qcm-score.on{display:block}
+.lbody .onglets{display:flex;gap:6px;flex-wrap:wrap;border-bottom:2px solid var(--line)}
+.lbody button.onglet{font:inherit;font-weight:600;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:8px 12px;color:var(--muted);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.lbody button.onglet[aria-selected="true"]{color:var(--pen);border-bottom-color:var(--pen)}
+.lbody button.onglet .o-n{display:inline-grid;place-items:center;width:1.5em;height:1.5em;border-radius:50%;background:var(--grid);font-size:.8rem}
+.lbody button.onglet[aria-selected="true"] .o-n{background:var(--pen);color:var(--surface)}
+.lbody .qcm-o input{width:auto;margin:0;flex:none}
+.lbody .qcm-o > span{flex:1;text-align:left}

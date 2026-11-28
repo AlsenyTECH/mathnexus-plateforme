@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import type { Groupe, Membre, ResumeParcours, Sommaire, TableauProgression } from '../api/types'
 import { BarreAvancement, Cadre, Chargement, MessageErreur, useDonnees } from '../composants/communs'
 import { ACorriger, DevoirsDeLaClasse } from './Devoirs'
+import { TableauDeClasse } from './Suivi'
 
 export function MesClasses() {
   const { donnees, erreur, chargement } = useDonnees(() => api.get<Groupe[]>('groupes/'), [])
@@ -54,6 +55,7 @@ export function ClasseProf() {
       <p className="fil"><Link to="/prof">← Mes classes</Link></p>
       <MessageErreur erreur={g.erreur ?? membres.erreur ?? parcours.erreur} />
       <DevoirsDeLaClasse groupe={groupe} eleves={eleves} parcours={parcours.donnees ?? []} />
+      <TableauDeClasse groupe={groupe} />
       <div className="grille-2 haut">
         <section>
           <h2>Parcours</h2>
@@ -72,7 +74,7 @@ export function ClasseProf() {
           <h2>Élèves ({eleves.length})</h2>
           {membres.chargement && <Chargement />}
           <ul className="liste-simple">
-            {eleves.map((m) => <li key={m.utilisateur}>{m.prenom} {m.nom}</li>)}
+            {eleves.map((m) => <li key={m.utilisateur}><Link to={`/prof/${groupe}/eleves/${m.utilisateur}`}>{m.prenom} {m.nom}</Link></li>)}
           </ul>
           {eleves.length === 0 && (
             <p className="discret">Aucun élève pour l'instant : donne-leur le code d'inscription de la classe (menu « Classes »).</p>

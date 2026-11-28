@@ -172,10 +172,24 @@ export interface Devoir {
   eleve: string | null
   eleve_nom: string | null
   cree_le: string
+  duree_min: number | null
+  sujet_masque: boolean
+  pieces: PieceJointe[]
+}
+
+export interface PieceJointe {
+  id: string
+  nom: string
+  type_mime: string
+  taille: number
+  url: string
 }
 
 export interface EtatDevoir {
   statut: StatutDevoir
+  commence_le: string | null
+  fin_prevue: string | null
+  hors_temps: boolean
   rendu_le: string | null
   note: number | null
   corrige_le: string | null
@@ -239,4 +253,88 @@ export interface EvaluationResume {
   etape_titre: string
   duree_min: number | null
   total: number
+}
+
+// --- Séance du jour, carnet d'erreurs, suivi -------------------------------------------------
+
+export interface SeanceDuJour {
+  date: string
+  devoirs: {
+    id: string; titre: string; type: TypeDevoir; date_limite: string | null; duree_min: number | null
+    statut: StatutDevoir; commence_le: string | null; pour_aujourd_hui: boolean; sujet_masque: boolean
+  }[]
+  etapes: {
+    parcours: string; parcours_titre: string; cle: string; titre: string; duree_min: number | null
+    partie: string; commencee: boolean
+  }[]
+  autres_parcours: number
+  revisions: number
+}
+
+export interface EntreeCarnet {
+  id: string
+  groupe: string
+  question: { enonce: string; choix: string[]; type: string; multiple: boolean }
+  evaluation: string
+  parcours: string
+  parcours_titre: string
+  cle_etape: string
+  etape_titre: string
+  ajoutee_le: string
+  a_revoir_le: string
+  due: boolean
+  revisions: number
+  reussites_de_suite: number
+  maitrisee_le: string | null
+}
+
+export interface Carnet {
+  a_revoir: number
+  en_cours: number
+  maitrisees: number
+  entrees: EntreeCarnet[]
+}
+
+export interface ReponseCarnet {
+  juste: boolean
+  bonnes: number[]
+  explication: string
+  entree: EntreeCarnet
+}
+
+export interface LigneSuivi {
+  eleve: string
+  prenom: string
+  nom: string
+  devoirs: number
+  termines: number
+  en_retard: number
+  a_corriger: number
+  moyenne: number | null
+  etapes_validees: number
+  etapes_total: number
+  carnet_a_revoir: number
+  carnet_maitrisees: number
+  derniere_activite: string | null
+}
+
+export interface FicheEleve extends LigneSuivi {
+  telephone: string
+  telephone_parent: string
+  derniere_connexion: string | null
+  liste_devoirs: (EtatDevoir & { id: string; titre: string; type: TypeDevoir; date_limite: string | null; note_sur: number; sur_20: number | null })[]
+  evaluations: { titre: string; parcours_titre: string; score: number | null; total: number | null; terminee_le: string; reussie: boolean | null }[]
+  progression: { slug: string; titre: string; validees: number; total: number; derniere_ouverture: string | null }[]
+}
+
+export interface Bilan {
+  jours: number
+  texte: string
+  telephone_parent: string
+  telephone: string
+  travaux_faits: number
+  travaux_donnes: number
+  en_retard: number
+  etapes: number
+  moyenne: number | null
 }

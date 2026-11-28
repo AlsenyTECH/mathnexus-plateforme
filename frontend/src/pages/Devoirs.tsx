@@ -7,15 +7,17 @@
  *
  * Toutes les règles d'accès sont sur le serveur : ces pages n'affichent que ce qu'il renvoie.
  */
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, ErreurApi } from '../api/client'
 import type {
   CopieACorriger, CopieEleve, DevoirEleve, DevoirProf, EtatDevoir, EvaluationResume, Membre, PhotoCopie,
-  Rendu, ResumeParcours, Sommaire, StatutDevoir, SuiviDevoir, TypeDevoir,
+  PieceJointe, Rendu, ResumeParcours, Sommaire, StatutDevoir, SuiviDevoir, TypeDevoir,
 } from '../api/types'
 import { Cadre, Chargement, MessageErreur, useDonnees } from '../composants/communs'
-import { compresserImage } from '../utilitaires'
+import { rendreFormules } from '../lecteur/maths'
+import { adresse, compresserImage, lienWhatsApp } from '../utilitaires'
+import { AnnoterPhoto } from './Annotation'
 
 // --- Petits morceaux communs ------------------------------------------------------------
 
@@ -53,12 +55,67 @@ function resultat(e: EtatDevoir, noteSur: number): string | null {
   return null
 }
 
-/** Un texte écrit par le prof ou l'élève, affiché tel quel (retours à la ligne gardés, aucun HTML). */
-function TexteLibre({ texte }: { texte: string }) {
-  return <div className="texte-libre">{texte}</div>
+/**
+ * Un texte écrit par le prof ou l'élève, affiché tel quel (retours à la ligne gardés, aucun HTML) ;
+ * les formules entre \( … \) ou \[ … \] sont mises en forme par KaTeX. Le texte est inséré comme
+ * texte (jamais comme HTML) : KaTeX ne fait que remplacer les formules qu'il reconnaît.
+ */
+export function TexteLibre({ texte }: { texte: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.textContent = texte
+      rendreFormules(ref.current)
+    }
+  }, [texte])
+  return <div ref={ref} className="texte-libre" />
 }
 
-function Galerie({ photos, supprimer }: { photos: PhotoCopie[]; supprimer?: (p: PhotoCopie) => void }) {
+/** Le sujet joint : les photos s'affichent, les PDF s'ouvrent dans un nouvel onglet. */
+function Pieces({ pieces, supprimer }: { pieces: PieceJointe[]; supprimer?: (p: PieceJointe) => void }) {
+  if (!pieces.length) return null
+  return (
+    <ul className="pieces">
+      {pieces.map((p) => (
+        <li key={p.id}>
+          {p.type_mime.startsWith('image/') ? (
+            <a href={p.url} target="_blank" rel="noreferrer"><img src={p.url} alt={p.nom || 'Sujet'} loading="lazy" /></a>
+          ) : (
+            <a className="btn ghost" href={p.url} target="_blank" rel="noreferrer">📄 {p.nom || 'Sujet (PDF)'}</a>
+          )}
+          {supprimer && <button type="button" className="btn ghost petit" onClick={() => supprimer(p)}>Retirer</button>}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/** Le temps qui reste avant `fin`, mis à jour chaque seconde. */
+function Chronometre({ fin }: { fin: string }) {
+  const [maintenant, setMaintenant] = useState(() => Date.now())
+  useEffect(() => {
+    const t = window.setInterval(() => setMaintenant(Date.now()), 1000)
+    return () => window.clearInterval(t)
+  }, [])
+  const reste = Math.max(0, new Date(fin).getTime() - maintenant)
+  const min = Math.floor(reste / 60_000)
+  const sec = Math.floor((reste % 60_000) / 1000)
+  return (
+    <p className={`chronometre${reste < 120_000 ? ' presque' : ''}`} role="timer">
+      {reste > 0 ? `Temps restant : ${min} min ${String(sec).padStart(2, '0')} s` : 'Temps écoulé : envoie ta copie maintenant.'}
+    </p>
+  )
+}
+
+/** Le message WhatsApp qui annonce un devoir à la classe. */
+function messageDevoir(d: { titre: string; date_limite: string | null; groupe: string; id: string; duree_min: number | null }) {
+  return `📚 Nouveau travail : ${d.titre}${d.duree_min ? ` (chronométré, ${d.duree_min} min)` : ''}\n` +
+    `À rendre pour ${dateCourte(d.date_limite)}.\n${adresse(`/classe/${d.groupe}/devoirs/${d.id}`)}`
+}
+
+function Galerie({ photos, supprimer, annoter }: {
+  photos: PhotoCopie[]; supprimer?: (p: PhotoCopie) => void; annoter?: (p: PhotoCopie) => void
+}) {
   if (!photos.length) return null
   return (
     <ul className="galerie">
@@ -67,6 +124,9 @@ function Galerie({ photos, supprimer }: { photos: PhotoCopie[]; supprimer?: (p: 
           <a href={p.url} target="_blank" rel="noreferrer">
             <img src={p.url} alt="Photo de la copie" loading="lazy" />
           </a>
+          {annoter && (
+            <button type="button" className="btn petit" onClick={() => annoter(p)}>Annoter au stylo</button>
+          )}
           {supprimer && (
             <button type="button" className="btn ghost petit" onClick={() => supprimer(p)}>Retirer</button>
           )}
@@ -192,6 +252,15 @@ export function PageDevoirEleve() {
     }
   }
 
+  async function commencer() {
+    setErreur(null)
+    try {
+      setD(await api.post<DevoirEleve>(`devoirs/${devoir}/commencer/`))
+    } catch (e) {
+      setErreur(e as Error)
+    }
+  }
+
   async function retirer(p: PhotoCopie) {
     await api.delete(`photos/${p.id}/`)
     if (actuel?.rendu) mettreAJour({ rendu: { ...actuel.rendu, photos: actuel.rendu.photos.filter((x) => x.id !== p.id) } })
@@ -206,7 +275,25 @@ export function PageDevoirEleve() {
       <p>
         <BadgeStatut statut={actuel.statut} /> <span className="discret">À rendre pour {dateCourte(actuel.date_limite)}</span>
       </p>
-      {actuel.consigne && <section className="encart"><h2>Consigne</h2><TexteLibre texte={actuel.consigne} /></section>}
+      {actuel.sujet_masque ? (
+        <section className="encart commencer">
+          <h2>Évaluation chronométrée : {actuel.duree_min} min</h2>
+          <p>Le sujet apparaît quand tu cliques sur « Commencer », et le chronomètre démarre. Installe-toi au calme, avec ta copie et ton stylo.</p>
+          <button type="button" className="btn" onClick={() => void commencer()}>Commencer</button>
+          <MessageErreur erreur={erreur} />
+        </section>
+      ) : (
+        <>
+          {actuel.fin_prevue && actuel.statut !== 'corrige' && !actuel.rendu_le && <Chronometre fin={actuel.fin_prevue} />}
+          {(actuel.consigne || actuel.pieces.length > 0) && (
+            <section className="encart">
+              <h2>Sujet</h2>
+              {actuel.consigne && <TexteLibre texte={actuel.consigne} />}
+              <Pieces pieces={actuel.pieces} />
+            </section>
+          )}
+        </>
+      )}
       <LienTravail d={actuel} />
       {actuel.type === 'evaluation' && actuel.score !== null && (
         <p className="encart">Évaluation terminée : <strong>{actuel.score} / {actuel.total}</strong>. La correction détaillée est dans l'étape.</p>
@@ -222,7 +309,7 @@ export function PageDevoirEleve() {
         </section>
       )}
 
-      <section>
+      {!actuel.sujet_masque && <section>
         <h2>Ma copie</h2>
         {corrige ? (
           <>
@@ -247,8 +334,9 @@ export function PageDevoirEleve() {
           </>
         )}
         {message && <p className="succes" role="status">{message}</p>}
+        {actuel.hors_temps && <p className="discret">Copie envoyée après la fin du temps.</p>}
         <MessageErreur erreur={erreur} />
-      </section>
+      </section>}
     </Cadre>
   )
 }
@@ -278,6 +366,7 @@ function DonnerDuTravail({ groupe, eleves, parcours, apres }: {
   )
   const [erreur, setErreur] = useState<Error | null>(null)
   const [envoi, setEnvoi] = useState(false)
+  const [fichiers, setFichiers] = useState<File[]>([])
 
   async function donner(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -287,7 +376,7 @@ function DonnerDuTravail({ groupe, eleves, parcours, apres }: {
     setErreur(null)
     setEnvoi(true)
     try {
-      await api.post(`groupes/${groupe}/devoirs/`, {
+      const cree = await api.post<{ id: string }>(`groupes/${groupe}/devoirs/`, {
         type,
         titre: f.get('titre') || '',
         consigne: f.get('consigne') || '',
@@ -298,7 +387,15 @@ function DonnerDuTravail({ groupe, eleves, parcours, apres }: {
         // La date saisie est en heure locale : on l'envoie avec son fuseau.
         date_limite: limite ? new Date(limite).toISOString() : null,
         note_sur: f.get('note_sur') || undefined,
+        duree_min: f.get('duree_min') ? Number(f.get('duree_min')) : null,
       })
+      for (const fichier of fichiers) {
+        const donnees = new FormData()
+        if (fichier.type.startsWith('image/')) donnees.append('fichier', await compresserImage(fichier), fichier.name.replace(/\.\w+$/, '.jpg'))
+        else donnees.append('fichier', fichier, fichier.name)
+        await api.post(`devoirs/${cree.id}/sujet/`, donnees)
+      }
+      setFichiers([])
       formulaire.reset()
       setSlug('')
       apres()
@@ -363,8 +460,11 @@ function DonnerDuTravail({ groupe, eleves, parcours, apres }: {
       <label className="champ">Titre{type !== 'libre' && <span className="champ-aide"> (facultatif : celui de l'étape par défaut)</span>}
         <input name="titre" required={type === 'libre'} placeholder="Ex. : Évaluation du jour — produit de matrices" />
       </label>
-      <label className="champ">Consigne
-        <textarea name="consigne" rows={3} placeholder="Ce qu'il faut faire, les exercices, le temps conseillé…" />
+      <label className="champ">Consigne ou énoncé
+        <textarea name="consigne" rows={4} placeholder="Les exercices à faire. Formules : \\( x^2 \\) dans la ligne, \\[ \\int_0^1 f \\] à part." />
+      </label>
+      <label className="champ">Sujet en photo ou en PDF <span className="champ-aide">(facultatif : exercices photographiés, fiche de TD)</span>
+        <input type="file" accept="image/*,application/pdf" multiple onChange={(e) => setFichiers(Array.from(e.target.files ?? []))} />
       </label>
       <div className="grille-2">
         <label className="champ">À rendre pour
@@ -374,6 +474,11 @@ function DonnerDuTravail({ groupe, eleves, parcours, apres }: {
           <input type="number" name="note_sur" min={1} max={1000} step="0.5" placeholder="20" />
         </label>
       </div>
+      {type !== 'evaluation' && (
+        <label className="champ">Chronométré <span className="champ-aide">(minutes ; vide : pas de chronomètre. Le sujet reste caché jusqu'au clic sur « Commencer »)</span>
+          <input type="number" name="duree_min" min={1} max={600} placeholder="Ex. : 15 pour l'évaluation du jour" />
+        </label>
+      )}
       <MessageErreur erreur={erreur} />
       <button className="btn" type="submit" disabled={envoi}>{envoi ? 'Envoi…' : 'Donner ce travail'}</button>
     </form>
@@ -402,16 +507,20 @@ export function DevoirsDeLaClasse({ groupe, eleves, parcours }: { groupe: string
       <ul className="liste-devoirs">
         {devoirs.donnees?.map((d) => (
           <li key={d.id}>
-            <Link to={`/prof/${groupe}/devoirs/${d.id}`} className="ligne-devoir">
-              <span className="ligne-devoir-titre">
-                <span className="discret">{TYPES[d.type]} · </span>{d.titre}
-                {d.eleve_nom && <span className="discret"> · pour {d.eleve_nom}</span>}
-              </span>
-              <span className="ligne-devoir-infos">
-                {d.a_corriger > 0 && <span className="badge attente">{d.a_corriger} à corriger</span>}
-                <span className="discret"> {d.termines}/{d.effectif} faits · pour {dateCourte(d.date_limite)}</span>
-              </span>
-            </Link>
+            <div className="ligne-avec-action">
+              <Link to={`/prof/${groupe}/devoirs/${d.id}`} className="ligne-devoir">
+                <span className="ligne-devoir-titre">
+                  <span className="discret">{TYPES[d.type]}{d.duree_min ? ` ${d.duree_min} min` : ''} · </span>{d.titre}
+                  {d.eleve_nom && <span className="discret"> · pour {d.eleve_nom}</span>}
+                </span>
+                <span className="ligne-devoir-infos">
+                  {d.a_corriger > 0 && <span className="badge attente">{d.a_corriger} à corriger</span>}
+                  <span className="discret"> {d.termines}/{d.effectif} faits · pour {dateCourte(d.date_limite)}</span>
+                </span>
+              </Link>
+              <a className="btn ghost petit whatsapp" href={lienWhatsApp(messageDevoir(d))} target="_blank" rel="noreferrer"
+                title="Annoncer ce travail sur WhatsApp">WhatsApp</a>
+            </div>
           </li>
         ))}
       </ul>
@@ -438,8 +547,18 @@ export function SuiviDevoir() {
       <MessageErreur erreur={erreur} />
       {d && (
         <>
-          <p className="discret">{TYPES[d.type]} · à rendre pour {dateCourte(d.date_limite)} · noté sur {d.note_sur}</p>
-          {d.consigne && <div className="encart"><TexteLibre texte={d.consigne} /></div>}
+          <p className="discret">
+            {TYPES[d.type]}{d.duree_min ? `, chronométré ${d.duree_min} min` : ''} · à rendre pour {dateCourte(d.date_limite)} · noté sur {d.note_sur}
+          </p>
+          <p>
+            <a className="btn ghost whatsapp" href={lienWhatsApp(messageDevoir(d))} target="_blank" rel="noreferrer">Annoncer sur WhatsApp</a>
+          </p>
+          {(d.consigne || d.pieces.length > 0) && (
+            <div className="encart">
+              {d.consigne && <TexteLibre texte={d.consigne} />}
+              <Pieces pieces={d.pieces} />
+            </div>
+          )}
           <div className="table-wrap">
             <table className="tableau-progression">
               <thead><tr><th>Élève</th><th>Statut</th><th>Résultat</th><th>Rendu le</th><th /></tr></thead>
@@ -447,7 +566,7 @@ export function SuiviDevoir() {
                 {d.eleves.map((e) => (
                   <tr key={e.eleve}>
                     <td>{e.prenom} {e.nom}</td>
-                    <td><BadgeStatut statut={e.statut} /></td>
+                    <td><BadgeStatut statut={e.statut} />{e.hors_temps && <span className="discret"> hors temps</span>}</td>
                     <td>{resultat(e, d.note_sur) ?? '—'}</td>
                     <td>{e.rendu_le ? dateCourte(e.rendu_le) : e.tentative_terminee_le ? dateCourte(e.tentative_terminee_le) : '—'}</td>
                     <td><Link className="btn petit" to={`/prof/${groupe}/devoirs/${devoir}/${e.eleve}`}>
@@ -476,6 +595,33 @@ export function CorrigerCopie() {
   const [message, setMessage] = useState('')
   // Quel bouton a envoyé le formulaire : « Enregistrer » ou « Rendre la copie ».
   const rendreDemande = useRef(false)
+  const commentaire = useRef<HTMLTextAreaElement>(null)
+  const banque = useDonnees(() => api.get<string[]>('mes-commentaires/'), [url])
+  // Passer à la copie suivante garde la même page : on oublie la copie précédente.
+  useEffect(() => {
+    setCopie(null)
+    setMessage('')
+    setErreur(null)
+  }, [url])
+  const suivi = useDonnees(() => api.get<SuiviDevoir>(`devoirs/${devoir}/`), [devoir, copie?.corrige_le])
+  const [aAnnoter, setAAnnoter] = useState<PhotoCopie | null>(null)
+  // La copie suivante à corriger dans ce devoir (dans l'ordre de la liste).
+  const suivante = suivi.donnees?.eleves.find((e) => e.statut === 'rendu' && e.eleve !== eleve)
+
+  function ajouterCommentaire(texte: string) {
+    const zone = commentaire.current
+    if (!zone) return
+    zone.value = zone.value.trim() ? `${zone.value.trim()}\n${texte}` : texte
+    zone.focus()
+  }
+
+  async function enregistrerAnnotation(image: Blob) {
+    const donnees = new FormData()
+    donnees.append('photo', image, 'copie-annotee.jpg')
+    const r = await api.post<{ rendu: Rendu }>(`${url}photos/`, donnees)
+    if (c) setCopie({ ...c, rendu: r.rendu })
+    setAAnnoter(null)
+  }
 
   async function enregistrer(e: FormEvent<HTMLFormElement>, rendre: boolean) {
     e.preventDefault()
@@ -501,13 +647,23 @@ export function CorrigerCopie() {
   return (
     <Cadre titre={`${c.eleve.prenom} ${c.eleve.nom}`}>
       <p className="fil"><Link to={`/prof/${groupe}/devoirs/${devoir}`}>← {c.devoir.titre}</Link></p>
-      <p><BadgeStatut statut={c.statut} />{c.score !== null && <> · évaluation : <strong>{c.score} / {c.total}</strong></>}</p>
+      <p>
+        <BadgeStatut statut={c.statut} />{c.score !== null && <> · évaluation : <strong>{c.score} / {c.total}</strong></>}
+        {c.hors_temps && <span className="discret"> · envoyée après la fin du temps</span>}
+        {suivante && (
+          <Link className="btn ghost petit copie-suivante" to={`/prof/${groupe}/devoirs/${devoir}/${suivante.eleve}`}>
+            Copie suivante : {suivante.prenom} →
+          </Link>
+        )}
+      </p>
+      {aAnnoter && <AnnoterPhoto url={aAnnoter.url} fermer={() => setAAnnoter(null)} enregistrer={enregistrerAnnotation} />}
       <div className="grille-2 haut">
         <section>
           <h2>La copie</h2>
           {!r?.texte && !r?.photos.length && <p className="discret">Rien n'a encore été rendu.</p>}
           {r?.texte && <TexteLibre texte={r.texte} />}
-          <Galerie photos={r?.photos ?? []} />
+          <Galerie photos={r?.photos ?? []} annoter={setAAnnoter} />
+          {(r?.photos.length ?? 0) > 0 && <p className="discret">« Annoter au stylo » : tu écris en rouge sur la photo, elle est ajoutée à la correction.</p>}
         </section>
         <section>
           <h2>La correction</h2>
@@ -516,8 +672,15 @@ export function CorrigerCopie() {
               <input type="number" name="note" min={0} max={c.devoir.note_sur} step="0.25" defaultValue={r?.note ?? ''} />
             </label>
             <label className="champ">Mot pour l'élève
-              <textarea name="commentaire" rows={3} defaultValue={r?.commentaire ?? ''} placeholder="Ce qui est bien, ce qu'il faut retravailler." />
+              <textarea ref={commentaire} name="commentaire" rows={3} defaultValue={r?.commentaire ?? ''} placeholder="Ce qui est bien, ce qu'il faut retravailler." />
             </label>
+            {(banque.donnees?.length ?? 0) > 0 && (
+              <div className="banque-commentaires" aria-label="Tes commentaires fréquents">
+                {banque.donnees?.map((t) => (
+                  <button key={t} type="button" className="puce" onClick={() => ajouterCommentaire(t)} title="Ajouter ce commentaire">{t}</button>
+                ))}
+              </div>
+            )}
             <label className="champ">Correction rédigée
               <textarea name="correction" rows={8} defaultValue={r?.correction ?? ''} />
             </label>
@@ -528,7 +691,14 @@ export function CorrigerCopie() {
             <AjoutPhotos url={`${url}photos/`} libelle="Ajouter une photo (copie annotée, corrigé)"
               apres={(x) => setCopie({ ...c, rendu: x.rendu })} />
             <MessageErreur erreur={erreur} />
-            {message && <p className="succes" role="status">{message}</p>}
+            {message && (
+              <p className="succes" role="status">
+                {message}
+                {message.startsWith('Copie rendue') && suivante && (
+                  <> <Link to={`/prof/${groupe}/devoirs/${devoir}/${suivante.eleve}`}>Copie suivante : {suivante.prenom} {suivante.nom} →</Link></>
+                )}
+              </p>
+            )}
             <div className="actions">
               <button type="submit" className="btn ghost" onClick={() => { rendreDemande.current = false }}>Enregistrer</button>
               <button type="submit" className="btn" onClick={() => { rendreDemande.current = true }}>

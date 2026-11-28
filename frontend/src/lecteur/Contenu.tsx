@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { type ContexteParcours, monterComposants } from './composants'
+import { monterAutocorrections } from './autocorrection'
 import { monterEvaluations } from './evaluation'
 import { monterFigures } from './figures'
 import { rendreFormules } from './maths'
@@ -32,6 +33,7 @@ export function Contenu({ html, prefixeNotes, contexte = null }: {
     rendreFormules(racine)
     const demonterFigures = monterFigures(racine)
     const demonterEvaluations = monterEvaluations(racine, prefixeNotes, rendreFormules)
+    monterAutocorrections(racine, rendreFormules)
     const ctx = groupe && slug ? { groupe, slug } : null
     const demonterComposants = monterComposants(racine, ctx, rendreFormules)
     return () => {
