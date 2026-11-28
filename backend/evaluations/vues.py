@@ -18,8 +18,9 @@ from contenus.acces import etat_etape
 from contenus.vues import _contexte
 from organisations.acces import groupes_visibles
 
+from . import carnet as regles_carnet
 from . import tentatives as regles
-from .models import Evaluation, Tentative
+from .models import EntreeCarnet, Evaluation, Tentative
 
 MESSAGES_REFUS = {
     "pas_encore_ouverte": "Cette étape n'est pas encore ouverte par ton prof.",
@@ -165,3 +166,61 @@ class Terminer(_VueTentative):
         tentative = _ma_tentative(request, tentative_id)
         tentative = regles.terminer(tentative, temps=request.data.get("temps"))
         return Response(etat_tentative(tentative))
+
+
+# --- Le carnet d'erreurs ----------------------------------------------------------------------
+
+
+
+def _entree(e, maintenant):
+    q = e.question
+    ev = q.evaluation
+    return {
+        "id": str(e.id), "groupe": str(e.groupe_id),
+        "question": {"enonce": q.enonce, "choix": q.choix, "type": q.type, "multiple": q.type == q.Type.CHOIX_MULTIPLE},
+        "evaluation": ev.titre, "parcours": ev.version.parcours.slug, "parcours_titre": ev.version.parcours.titre,
+        "cle_etape": ev.etape.cle, "etape_titre": ev.etape.titre,
+        "ajoutee_le": e.ajoutee_le, "a_revoir_le": e.a_revoir_le, "due": e.maitrisee_le is None and e.a_revoir_le <= maintenant,
+        "revisions": e.revisions, "reussites_de_suite": e.reussites_de_suite, "maitrisee_le": e.maitrisee_le,
+    }
+
+
+class Carnet(APIView):
+    """L'élève : son carnet d'erreurs (sans les bonnes réponses : il les retrouve en répondant)."""
+
+    def get(self, request):
+        regles_carnet.synchroniser(request.user)
+        maintenant = timezone.now()
+        entrees = EntreeCarnet.objects.filter(
+            utilisateur=request.user, groupe__in=groupes_visibles(request.user)
+        ).select_related("question__evaluation__version__parcours", "question__evaluation__etape")
+        groupe = request.query_params.get("groupe")
+        if groupe:
+            entrees = entrees.filter(groupe_id=groupe)
+        donnees = [_entree(e, maintenant) for e in entrees]
+        donnees.sort(key=lambda x: (x["maitrisee_le"] is not None, not x["due"], x["a_revoir_le"]))
+        return Response({
+            "a_revoir": sum(d["due"] for d in donnees),
+            "en_cours": sum(d["maitrisee_le"] is None for d in donnees),
+            "maitrisees": sum(d["maitrisee_le"] is not None for d in donnees),
+            "entrees": donnees,
+        })
+
+
+class RepondreCarnet(APIView):
+    """L'élève : retravaille une question de son carnet ; la correction arrive avec la réponse."""
+
+    def post(self, request, pk):
+        entree = get_object_or_404(
+            EntreeCarnet.objects.select_related("question__evaluation__version__parcours", "question__evaluation__etape"),
+            pk=pk, utilisateur=request.user, groupe__in=groupes_visibles(request.user),
+        )
+        choix = request.data.get("choix")
+        if not isinstance(choix, list) or not all(isinstance(c, int) for c in choix):
+            return Response({"choix": "Liste des indices choisis attendue."}, status=status.HTTP_400_BAD_REQUEST)
+        juste = sorted(set(choix)) == sorted(set(entree.question.bonnes))
+        regles_carnet.enregistrer_revision(entree, juste)
+        return Response({
+            "juste": juste, "bonnes": entree.question.bonnes, "explication": entree.question.explication,
+            "entree": _entree(entree, timezone.now()),
+        })

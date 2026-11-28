@@ -21,16 +21,22 @@ from evaluations.models import Evaluation
 from organisations.acces import groupes_enseignes
 
 from . import photos as regles_photos
-from .models import Devoir, Photo, Rendu
-from .regles import devoirs_de_l_eleve, devoirs_du_prof, eleves_concernes, etat, nombre
+from .models import Devoir, PieceJointe, Photo, Rendu
+from .regles import devoirs_de_l_eleve, devoirs_du_prof, eleves_concernes, etat, nombre, sujet_visible
 
 # --- Représentations -------------------------------------------------------------------
 
 
-def _resume_devoir(d):
+def _resume_devoir(d, masquer_sujet=False):
     return {
         "id": str(d.id), "groupe": str(d.groupe_id), "groupe_nom": d.groupe.nom, "type": d.type,
-        "titre": d.titre, "consigne": d.consigne, "date_limite": d.date_limite, "note_sur": nombre(d.note_sur),
+        "titre": d.titre, "consigne": "" if masquer_sujet else d.consigne,
+        "sujet_masque": masquer_sujet, "duree_min": d.duree_min,
+        "pieces": [] if masquer_sujet else [
+            {"id": str(x.id), "nom": x.nom, "type_mime": x.type_mime, "taille": x.taille, "url": f"/api/pieces/{x.id}/"}
+            for x in d.pieces.all()
+        ],
+        "date_limite": d.date_limite, "note_sur": nombre(d.note_sur),
         "parcours": d.parcours.slug if d.parcours_id else None,
         "parcours_titre": d.parcours.titre if d.parcours_id else None,
         "cle_etape": d.cle_etape or None, "cle_evaluation": d.cle_evaluation or None,
@@ -89,11 +95,15 @@ class DevoirSerializer(serializers.Serializer):
     cle_evaluation = serializers.CharField(required=False, allow_blank=True, max_length=60)
     date_limite = serializers.DateTimeField(required=False, allow_null=True)
     note_sur = serializers.DecimalField(max_digits=6, decimal_places=2, required=False, min_value=1, max_value=1000)
+    duree_min = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=600)
 
 
 def _preparer(groupe, donnees):
     """Vérifie un devoir (élève de la classe, étape ou évaluation publiée et rattachée) ; renvoie les champs."""
-    champs = {"type": donnees["type"], "consigne": donnees.get("consigne", ""), "date_limite": donnees.get("date_limite")}
+    champs = {
+        "type": donnees["type"], "consigne": donnees.get("consigne", ""), "date_limite": donnees.get("date_limite"),
+        "duree_min": donnees.get("duree_min"),
+    }
     if "note_sur" in donnees:
         champs["note_sur"] = donnees["note_sur"]
     titre = (donnees.get("titre") or "").strip()
@@ -204,8 +214,7 @@ class DetailDevoir(APIView):
                 ],
             })
         devoir = get_object_or_404(devoirs_de_l_eleve(request.user).select_related("groupe", "parcours", "eleve"), pk=pk)
-        rendu = devoir.rendus.filter(eleve=request.user).prefetch_related("photos").first()
-        return Response({**_resume_devoir(devoir), "vue": "eleve", **etat(devoir, request.user, rendu), "rendu": _rendu(rendu)})
+        return Response(_vue_eleve(devoir, request.user))
 
     def patch(self, request, pk):
         devoir = self._devoir_prof(request, pk)
@@ -213,7 +222,7 @@ class DetailDevoir(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
         s = DevoirSerializer(data={"type": devoir.type, **request.data}, partial=True)
         s.is_valid(raise_exception=True)
-        for champ in ("titre", "consigne", "date_limite", "note_sur"):
+        for champ in ("titre", "consigne", "date_limite", "note_sur", "duree_min"):
             if champ in s.validated_data:
                 setattr(devoir, champ, s.validated_data[champ])
         devoir.save()
@@ -228,6 +237,29 @@ class DetailDevoir(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+def _vue_eleve(devoir, eleve):
+    rendu = devoir.rendus.filter(eleve=eleve).prefetch_related("photos").first()
+    return {
+        **_resume_devoir(devoir, masquer_sujet=not sujet_visible(devoir, rendu)), "vue": "eleve",
+        **etat(devoir, eleve, rendu), "rendu": _rendu(rendu),
+    }
+
+
+class CommencerDevoir(APIView):
+    """L'élève : lance le chronomètre d'un devoir chronométré ; le sujet apparaît."""
+
+    def post(self, request, pk):
+        devoir = get_object_or_404(devoirs_de_l_eleve(request.user).select_related("groupe", "parcours", "eleve"), pk=pk)
+        if not devoir.duree_min:
+            raise ValidationError({"detail": "Ce devoir n'est pas chronométré."})
+        with transaction.atomic():
+            rendu, _ = Rendu.objects.select_for_update().get_or_create(devoir=devoir, eleve=request.user)
+            if rendu.commence_le is None:
+                rendu.commence_le = timezone.now()
+                rendu.save(update_fields=["commence_le", "modifie_le"])
+        return Response(_vue_eleve(devoir, request.user))
+
+
 class MesDevoirs(APIView):
     """L'élève : tous ses devoirs (ou ceux d'une classe), du plus urgent au plus ancien."""
 
@@ -237,7 +269,10 @@ class MesDevoirs(APIView):
         if groupe:
             devoirs = devoirs.filter(groupe_id=groupe)
         rendus = {r.devoir_id: r for r in Rendu.objects.filter(eleve=request.user, devoir__in=devoirs)}
-        resultat = [{**_resume_devoir(d), **etat(d, request.user, rendus.get(d.id))} for d in devoirs]
+        resultat = [
+            {**_resume_devoir(d, masquer_sujet=not sujet_visible(d, rendus.get(d.id))), **etat(d, request.user, rendus.get(d.id))}
+            for d in devoirs
+        ]
         ordre = {"en_retard": 0, "a_faire": 1, "rendu": 2, "fait": 3, "corrige": 4}
         resultat.sort(key=lambda x: (ordre[x["statut"]], x["date_limite"] or timezone.now()))
         return Response(resultat)
@@ -253,6 +288,8 @@ def _rendu_modifiable(request, pk):
     rendu, _ = Rendu.objects.get_or_create(devoir=devoir, eleve=request.user)
     if rendu.corrige_le:
         raise ValidationError({"detail": "Cette copie est déjà corrigée : elle ne se modifie plus."})
+    if devoir.duree_min and rendu.commence_le is None:
+        raise ValidationError({"detail": "Clique d'abord sur « Commencer » : le chronomètre démarre et le sujet apparaît."})
     return devoir, rendu
 
 
@@ -406,3 +443,68 @@ class DetailPhoto(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
         photo.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# --- Le sujet joint (photo ou PDF) --------------------------------------------------------
+
+
+class SujetDuDevoir(APIView):
+    """Le prof : joint le sujet d'un devoir (photo des exercices, fiche de TD en PDF)."""
+
+    def post(self, request, pk):
+        devoir = devoirs_du_prof(request.user).filter(pk=pk).select_related("groupe", "parcours", "eleve").first()
+        if devoir is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        fichier = request.FILES.get("fichier")
+        try:
+            donnees, mime = regles_photos.verifier_sujet(fichier)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        if devoir.pieces.count() >= regles_photos.NOMBRE_MAX_SUJET:
+            return Response({"detail": f"Au plus {regles_photos.NOMBRE_MAX_SUJET} fichiers."}, status=status.HTTP_400_BAD_REQUEST)
+        nom = (getattr(fichier, "name", "") or "")[:120]
+        PieceJointe.objects.create(devoir=devoir, nom=nom, type_mime=mime, taille=len(donnees), donnees=donnees)
+        return Response(_resume_devoir(devoir), status=status.HTTP_201_CREATED)
+
+
+class DetailPiece(APIView):
+    """Une pièce jointe : visible des profs de la classe et des élèves concernés (sujet découvert)."""
+
+    def _piece(self, request, pk):
+        piece = get_object_or_404(PieceJointe.objects.select_related("devoir"), pk=pk)
+        devoir = piece.devoir
+        if devoirs_du_prof(request.user).filter(pk=devoir.pk).exists():
+            return piece, True
+        if devoirs_de_l_eleve(request.user).filter(pk=devoir.pk).exists():
+            rendu = devoir.rendus.filter(eleve=request.user).first()
+            if sujet_visible(devoir, rendu):
+                return piece, False
+        return None, False
+
+    def get(self, request, pk):
+        piece, _ = self._piece(request, pk)
+        if piece is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        reponse = HttpResponse(bytes(piece.donnees), content_type=piece.type_mime)
+        reponse["Cache-Control"] = "private, max-age=3600"
+        reponse["X-Content-Type-Options"] = "nosniff"
+        reponse["Content-Disposition"] = "inline"
+        return reponse
+
+    def delete(self, request, pk):
+        piece, est_prof = self._piece(request, pk)
+        if piece is None or not est_prof:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        piece.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MesCommentaires(APIView):
+    """Le prof : ses commentaires de correction les plus fréquents, pour les réutiliser en un clic."""
+
+    def get(self, request):
+        from collections import Counter
+
+        textes = Rendu.objects.filter(corrige_par=request.user).exclude(commentaire="").values_list("commentaire", flat=True)
+        compte = Counter(t.strip() for t in textes[:500] if len(t.strip()) <= 300)
+        return Response([texte for texte, _ in compte.most_common(12)])

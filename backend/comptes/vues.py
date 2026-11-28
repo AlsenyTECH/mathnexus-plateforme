@@ -242,3 +242,31 @@ class ReactiverCompte(APIView):
         utilisateur.save(update_fields=["statut"])
         JournalAudit.noter(request, "compte_reactive", utilisateur.id)
         return Response(MoiSerializer(utilisateur).data)
+
+
+class ReinitialiserMotDePasse(APIView):
+    """L'admin : donne un nouveau mot de passe provisoire à un compte (élève qui a oublié le sien).
+
+    Le compte devra le changer à la connexion suivante ; ses appareils sont déconnectés. Le mot de passe
+    n'est affiché qu'une fois, dans la réponse : il n'est gardé nulle part en clair.
+    """
+
+    permission_classes = [EstAdmin]
+
+    def post(self, request, pk):
+        from organisations.vues import mot_de_passe_provisoire
+
+        utilisateur = get_object_or_404(Utilisateur, pk=pk)
+        if utilisateur.est_admin:
+            return Response({"detail": "Le mot de passe d'un admin se change depuis son propre compte."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        mdp = mot_de_passe_provisoire()
+        with transaction.atomic():
+            utilisateur.set_password(mdp)
+            utilisateur.doit_changer_mot_de_passe = True
+            utilisateur.save(update_fields=["password", "doit_changer_mot_de_passe"])
+            cles = utilisateur.appareils.values_list("cle_session", flat=True)
+            Session.objects.filter(session_key__in=list(cles)).delete()
+            utilisateur.appareils.all().delete()
+        JournalAudit.noter(request, "mot_de_passe_reinitialise", utilisateur.id)
+        return Response({"telephone": utilisateur.telephone, "mot_de_passe_provisoire": mdp})

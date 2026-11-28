@@ -127,3 +127,29 @@ class Reponse(models.Model):
 
     def __str__(self):
         return f"{self.tentative_id} · {self.question.cle}"
+
+
+class EntreeCarnet(models.Model):
+    """Le carnet d'erreurs : chaque question ratée (ou laissée sans réponse) d'une évaluation terminée.
+
+    L'élève la retravaille plus tard : une bonne réponse la repousse (1 jour, 3 jours, 7 jours) ;
+    après trois bonnes réponses de suite, elle est maîtrisée. Une erreur la fait revenir le lendemain.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    utilisateur = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="carnet")
+    groupe = models.ForeignKey("organisations.Groupe", on_delete=models.CASCADE, related_name="+")
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="+")
+    tentative = models.ForeignKey(Tentative, on_delete=models.SET_NULL, null=True, related_name="+")
+    ajoutee_le = models.DateTimeField(default=timezone.now)
+    a_revoir_le = models.DateTimeField(default=timezone.now)
+    revue_le = models.DateTimeField(null=True, blank=True)
+    revisions = models.PositiveIntegerField(default=0)
+    reussites_de_suite = models.PositiveIntegerField(default=0)
+    maitrisee_le = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["a_revoir_le"]
+        verbose_name = "entrée du carnet d'erreurs"
+        verbose_name_plural = "carnet d'erreurs"
+        constraints = [models.UniqueConstraint(fields=["utilisateur", "question"], name="carnet_une_entree_par_question")]

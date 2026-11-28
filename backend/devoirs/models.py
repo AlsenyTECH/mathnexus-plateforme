@@ -39,6 +39,10 @@ class Devoir(models.Model):
     cle_evaluation = models.CharField(max_length=60, blank=True)
     date_limite = models.DateTimeField(null=True, blank=True)
     note_sur = models.DecimalField(max_digits=6, decimal_places=2, default=20)
+    duree_min = models.PositiveIntegerField(
+        "durée (min)", null=True, blank=True,
+        help_text="Évaluation chronométrée : le sujet n'apparaît qu'au clic sur « Commencer ». Vide : pas de chronomètre.",
+    )
     cree_par = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
     cree_le = models.DateTimeField(default=timezone.now)
 
@@ -57,6 +61,7 @@ class Rendu(models.Model):
     devoir = models.ForeignKey(Devoir, on_delete=models.CASCADE, related_name="rendus")
     eleve = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="rendus")
     texte = models.TextField(blank=True)
+    commence_le = models.DateTimeField(null=True, blank=True, help_text="Devoir chronométré : début du chronomètre")
     rendu_le = models.DateTimeField(null=True, blank=True, help_text="Vide : brouillon pas encore envoyé")
     note = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     commentaire = models.TextField(blank=True)
@@ -88,3 +93,23 @@ class Photo(models.Model):
 
     class Meta:
         ordering = ["cree_le"]
+
+
+class PieceJointe(models.Model):
+    """Le sujet d'un devoir donné en photo ou en PDF (exercices photographiés, fiche de TD)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    devoir = models.ForeignKey(Devoir, on_delete=models.CASCADE, related_name="pieces")
+    nom = models.CharField(max_length=120, blank=True)
+    type_mime = models.CharField(max_length=40)
+    taille = models.PositiveIntegerField()
+    donnees = models.BinaryField()
+    cree_le = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["cree_le"]
+        verbose_name = "pièce jointe"
+        verbose_name_plural = "pièces jointes"
+
+    def __str__(self):
+        return self.nom or str(self.id)
